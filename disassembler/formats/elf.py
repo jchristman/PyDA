@@ -38,8 +38,6 @@ def parse_program(binary):
         options['section_header_entry_num'] = getint(binary[ELF.SHNumber.offset_64 : ELF.SHNumber.offset_64 + ELF.SHNumber.size], endianness)
         options['section_header_str_index'] = getint(binary[ELF.SHStrIndex.offset_64 : ELF.SHStrIndex.offset_64 + ELF.SHStrIndex.size], endianness)
     ### Done parsing ELF Header ###
-    
-    print options
 
     ### Parse the Program Header ###
     segments = []
@@ -63,7 +61,6 @@ def parse_program(binary):
     entry_size = options['section_header_entry_size']
     section_names = ELF.parseSection(binary, options, options['section_header_str_index'], entry_size, word_size, endianness)
     section_names_strings = binary[section_names['sh_offset'] : section_names['sh_offset'] + section_names['sh_size']]
-    print section_names, section_names_strings
     
     for i in xrange(options['section_header_entry_num']):
         section = ELF.parseSection(binary, options, i, entry_size, word_size, endianness)
