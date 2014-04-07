@@ -70,19 +70,15 @@ class PyDAInterface(Frame):
     ########### PyDA Specific Functions ###########
     def import_file(self):
         # Returns the opened file
-        ftypes = [('All files', '*')]
-        dialog = tkFileDialog.Open(self, filetypes = ftypes)
+        dialog = tkFileDialog.Open(self)
         file = dialog.show()
         
         if not file == '':
             binary = open(file, 'rb').read()
 
-            options = self.disassembler.get_options(binary)
-            if options == False:
-                self.onError()
-                return
+            self.disassembler.load(binary)
 
-            disassembly = self.disassembler.disassemble(binary, options)
+            disassembly = self.disassembler.disassemble()
 
             # Set current text to file contents
             self.disassembly_text_widget.delete(0.0, END)
