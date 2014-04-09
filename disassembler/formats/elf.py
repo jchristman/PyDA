@@ -4,41 +4,21 @@ from struct import unpack
 
 def disassemble(binary):
     return ELF(binary)
-#    except: return False
+#except: return False
 
-#### REQUIRED FUNCTIONS ####
-#    ### Parse the Program Header ###
-#    segments = []
-#    entry_size = options['program_header_entry_size']
-#    word_size = 4 if options['class'] == capstone.CS_MODE_32 else 8
-#    for i in xrange(options['program_header_entry_num']):
-#        entry_offset = options['program_header_offset'] + i * entry_size
-#        segment = {}
-#        segment['p_type']   = unpack('AAAA', binary[entry_offset + word_size * 0 : entry_offset + word_size * 1])[0]
-#        segment['p_offset'] = unpack('AAAA', binary[entry_offset + word_size * 1 : entry_offset + word_size * 2])[0]
-#        segment['p_vaddr']  = unpack('AAAA', binary[entry_offset + word_size * 2 : entry_offset + word_size * 3])[0]
-#        segment['p_paddr']  = unpack('AAAA', binary[entry_offset + word_size * 3 : entry_offset + word_size * 4])[0]
-#        segment['p_filesz'] = unpack('AAAA', binary[entry_offset + word_size * 4 : entry_offset + word_size * 5])[0]
-#        segment['p_memsz']  = unpack('AAAA', binary[entry_offset + word_size * 5 : entry_offset + word_size * 6])[0]
-#        segment['p_flags']  = unpack('AAAA', binary[entry_offset + word_size * 6 : entry_offset + word_size * 7])[0]
-#        segment['p_align']  = unpack('AAAA', binary[entry_offset + word_size * 7 : entry_offset + word_size * 8])[0]
-#        segments.append(segment)
-
-#### END REQUIRED FUNCTIONS ####
 class ELF:
     def __init__(self, binary):
         magic_offset = 0
         if not binary[magic_offset : magic_offset + WORD] == '\x7FELF':
             raise BadMagicHeaderException()
-
+        
         self.binary = binary
 
-        ### PARSE THE ELF HEADER NOW ###
         offset = 4
-        self.bin_class = capstone.CS_MODE_32 if unpack('B', binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_64
+        self.bin_class = capstone.CS_MODE_32 if unpack('B', self.binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_64
         self.word = ('Q' if self.bin_class == capstone.CS_MODE_64 else 'I', DWORD if self.bin_class == capstone.CS_MODE_64 else WORD)
         offset = 5
-        self.endian = capstone.CS_MODE_LITTLE_ENDIAN if unpack('B', binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_BIG_ENDIAN
+        self.endian = capstone.CS_MODE_LITTLE_ENDIAN if unpack('B', self.binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_BIG_ENDIAN
         self.end = '<' if self.endian == capstone.CS_MODE_LITTLE_ENDIAN else '>'
         offset = 7
         os_values = {
@@ -52,7 +32,7 @@ class ELF:
                 0x09 : 'FreeBSD',
                 0x0C : 'OpenBSD'
                 }
-        self.os = os_values[unpack('B', binary[offset : offset + BYTE])[0]]
+        self.os = os_values[unpack('B', self.binary[offset : offset + BYTE])[0]]
         offset = 0x10
         type_values     =   {
                 1 : 'relocatable',
@@ -60,10 +40,10 @@ class ELF:
                 3 : 'shared',
                 4 : 'core'
                 }
-        self.type = type_values[unpack(self.end + 'H', binary[offset : offset + HWORD])[0]]
+        self.type = type_values[unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]]
         offset = 0x12
         arch_values     =   {
-                0x02 : False, # SPARC not yet supported in capstone
+                #                0x02 : capstone.CS_ARCH_SPARC, Next version will have sparc
                 0x03 : capstone.CS_ARCH_X86,
                 0x08 : capstone.CS_ARCH_MIPS,
                 0x14 : capstone.CS_ARCH_PPC,
@@ -72,27 +52,27 @@ class ELF:
                 0x3E : capstone.CS_ARCH_X86, # This is actually x86_64 which I think is taken care of by the CS_MODE_64
                 0xB7 : capstone.CS_ARCH_ARM64
                 }
-        self.arch = arch_values[unpack(self.end + 'H', binary[offset : offset + HWORD])[0]]
+        self.arch = arch_values[unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]]
         offset = 0x18
-        self.entry_point = unpack(self.end + self.word[0], binary[offset : offset + self.word[1]])[0]
+        self.entry_point = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
         offset += self.word[1]
-        self.program_header_offset = unpack(self.end + self.word[0], binary[offset : offset + self.word[1]])[0]
+        self.program_header_offset = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
         offset += self.word[1]
-        self.section_header_offset = unpack(self.end + self.word[0], binary[offset : offset + self.word[1]])[0]
+        self.section_header_offset = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
         offset += self.word[1]
-        self.flags = unpack(self.end + 'I', binary[offset : offset + WORD])[0]
+        self.flags = unpack(self.end + 'I', self.binary[offset : offset + WORD])[0]
         offset += WORD
-        self.header_size = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.header_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
         offset += HWORD
-        self.program_header_entry_size = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.program_header_entry_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
         offset += HWORD
-        self.program_header_entry_num = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.program_header_entry_num = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
         offset += HWORD
-        self.section_header_entry_size = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.section_header_entry_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
         offset += HWORD
-        self.section_header_entry_num = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.section_header_entry_num = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
         offset += HWORD
-        self.section_header_str_index = unpack(self.end + 'H', binary[offset : offset + HWORD])[0]
+        self.section_header_str_index = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
 
         self.parseSections()
 
@@ -107,7 +87,23 @@ class ELF:
             self.sections.append(section)
 
         self.sections.sort(key=lambda i: i.sh_offset)
-        return self.sections
+
+    def disassemble(self):
+        md = capstone.Cs(self.arch, self.bin_class)
+        disassembly = CommonProgramDisassemblyFormat(ELF.PROGRAM_INFO)
+        
+        for s in self.sections:
+            if 'str' in s.sh_name_string or 'comment' in s.sh_name_string:
+                continue
+
+            section = CommonSectionFormat(s.sh_name_string)
+            sCODE = self.binary[s.sh_offset : s.sh_offset + s.sh_size]
+
+            for inst in md.disasm(sCODE, s.sh_addr):
+                section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str))
+
+            disassembly.addSection(section)
+        return disassembly
 
     class Section:
         def __init__(self, elf, index, entry_size, word_size):
@@ -122,3 +118,11 @@ class ELF:
             self.sh_info      = unpack(elf.end + 'I', elf.binary[entry_offset + 12 + word_size * 4 : entry_offset + 16 + word_size * 4])[0] # Always 4 bytes
             self.sh_addralign = unpack(elf.end + 'I', elf.binary[entry_offset + 16 + word_size * 4 : entry_offset + 16 + word_size * 5])[0] # 32 or 64 bits
             self.sh_entrsize  = unpack(elf.end + 'I', elf.binary[entry_offset + 16 + word_size * 5 : entry_offset + 16 + word_size * 6])[0] # 32 or 64 bits
+
+    PROGRAM_INFO = '''
+    ##############################################
+    ###     ELF Information                    ###
+    ###     Executable:                        ###
+    ###     More stuff from the beginning      ###   
+    ##############################################
+    '''

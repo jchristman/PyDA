@@ -1,5 +1,6 @@
 from Tkinter import Tk, Frame, Menu, Text, Scrollbar, Button, BOTH, END
 import tkFileDialog, tkMessageBox
+from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 
 def build_and_run(disassembler):
     root = Tk()
@@ -30,9 +31,10 @@ class PyDAInterface(Frame):
         #########################
 
         ## Create the PyDA toolbar ##
-        #self.toolbar = Frame()
-        #bold = Button(name="toolbar", text="bold", borderwidth=1, command=self.onExit)
-        #bold.pack(in_=self.toolbar, side="left")
+        self.toolbar = Frame()
+        
+        self.import_button = Button(text="Import", borderwidth=1, command=self.import_file)
+        self.import_button.pack(in_=self.toolbar, side="left")
         #############################
 
         ## Set up the main PyDA Disassembly Window ##
@@ -45,7 +47,7 @@ class PyDAInterface(Frame):
         #############################################
 
         ## Now pack things in the correct order ##
-        #self.toolbar.pack(side="top", fill="x")
+        self.toolbar.pack(side="top", fill="x")
         self.mainFrame.pack(side="bottom", fill="both", expand=True)
         ##########################################
 
@@ -79,10 +81,10 @@ class PyDAInterface(Frame):
             self.disassembler.load(binary)
 
             disassembly = self.disassembler.disassemble()
-
-            # Set current text to file contents
-            self.disassembly_text_widget.delete(0.0, END)
-            self.disassembly_text_widget.insert(0.0, disassembly)
+            if isinstance(disassembly, CommonProgramDisassemblyFormat):
+                # Set current text to file contents
+                self.disassembly_text_widget.delete(0.0, END)
+                self.disassembly_text_widget.insert(0.0, disassembly.toString())
 
 if __name__ == '__main__':
     build_and_run()
