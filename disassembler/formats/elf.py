@@ -78,11 +78,11 @@ class ELF:
 
     def parseSections(self):
         self.sections = []
-        section_names = ELF.Section(self, self.section_header_str_index, self.section_header_entry_size, self.word[1])
+        section_names = ELF.Section(self, self.section_header_str_index, self.section_header_entry_size, self.word)
         section_names_strings = self.binary[section_names.sh_offset : section_names.sh_offset + section_names.sh_size]
         
         for i in xrange(self.section_header_entry_num):
-            section = ELF.Section(self, i, self.section_header_entry_size, self.word[1])
+            section = ELF.Section(self, i, self.section_header_entry_size, self.word)
             section.sh_name_string = section_names_strings[section.sh_name:].split('\x00')[0]
             self.sections.append(section)
 
@@ -93,7 +93,7 @@ class ELF:
         disassembly = CommonProgramDisassemblyFormat(ELF.PROGRAM_INFO)
         
         for s in self.sections:
-            if 'str' in s.sh_name_string or 'comment' in s.sh_name_string:
+            if s.sh_name_string in ELF.dont_disassemble:
                 continue
 
             section = CommonSectionFormat(s.sh_name_string)
@@ -101,23 +101,24 @@ class ELF:
 
             for inst in md.disasm(sCODE, s.sh_addr):
                 section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str))
-
+            
+            section.searchForFunctions()
             disassembly.addSection(section)
         return disassembly
 
     class Section:
-        def __init__(self, elf, index, entry_size, word_size):
+        def __init__(self, elf, index, entry_size, word):
             entry_offset = elf.section_header_offset + index * entry_size
             self.sh_name      = unpack(elf.end + 'I', elf.binary[entry_offset : entry_offset + 4])[0] # Always 4 bytes
             self.sh_type      = unpack(elf.end + 'I', elf.binary[entry_offset + 4 : entry_offset + 8])[0] # Always 4 bytes
-            self.sh_flags     = unpack(elf.end + 'I', elf.binary[entry_offset + 8 : entry_offset + 8 + word_size])[0] # 32 or 64 bits
-            self.sh_addr      = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word_size : entry_offset + 8 + word_size * 2])[0] # 32 or 64 bits
-            self.sh_offset    = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word_size * 2: entry_offset + 8 + word_size * 3])[0] # 32 or 64 bits
-            self.sh_size      = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word_size * 3 : entry_offset + 8 + word_size * 4])[0] # 32 or 64 bits
-            self.sh_link      = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word_size * 4 : entry_offset + 12 + word_size * 4])[0] # Always 4 bytes
-            self.sh_info      = unpack(elf.end + 'I', elf.binary[entry_offset + 12 + word_size * 4 : entry_offset + 16 + word_size * 4])[0] # Always 4 bytes
-            self.sh_addralign = unpack(elf.end + 'I', elf.binary[entry_offset + 16 + word_size * 4 : entry_offset + 16 + word_size * 5])[0] # 32 or 64 bits
-            self.sh_entrsize  = unpack(elf.end + 'I', elf.binary[entry_offset + 16 + word_size * 5 : entry_offset + 16 + word_size * 6])[0] # 32 or 64 bits
+            self.sh_flags     = unpack(elf.end + word[0], elf.binary[entry_offset + 8 : entry_offset + 8 + word[1]])[0] # 32 or 64 bits
+            self.sh_addr      = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] : entry_offset + 8 + word[1] * 2])[0] # 32 or 64 bits
+            self.sh_offset    = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] * 2: entry_offset + 8 + word[1] * 3])[0] # 32 or 64 bits
+            self.sh_size      = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] * 3 : entry_offset + 8 + word[1] * 4])[0] # 32 or 64 bits
+            self.sh_link      = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word[1] * 4 : entry_offset + 12 + word[1] * 4])[0] # Always 4 bytes
+            self.sh_info      = unpack(elf.end + 'I', elf.binary[entry_offset + 12 + word[1] * 4 : entry_offset + 16 + word[1] * 4])[0] # Always 4 bytes
+            self.sh_addralign = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 4 : entry_offset + 16 + word[1] * 5])[0] # 32 or 64 bits
+            self.sh_entrsize  = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 5 : entry_offset + 16 + word[1] * 6])[0] # 32 or 64 bits
 
     PROGRAM_INFO = '''
     ##############################################
@@ -126,3 +127,5 @@ class ELF:
     ###     More stuff from the beginning      ###   
     ##############################################
     '''
+
+    dont_disassemble = ['.comment','.shstrtab','.symtab','.strtab','.note.ABI-tag','.note.gnu.build-id','.hash','.gnu.hash','.dynsym','.dynstr','.gnu.version','.gnu.version_r','.rodata','.eh_frame','.init_array','.jcr','.dynamic','.got','.got.plt','.data','.bss']

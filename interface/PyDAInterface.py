@@ -14,6 +14,7 @@ class PyDAInterface(Frame):
         self.disassembler = disassembler
         self.initUI()
         self.centerWindow()
+        self.focus_force()
 
     def initUI(self):
         self.parent.title("PyDA")
