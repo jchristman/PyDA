@@ -1,4 +1,4 @@
-from Tkinter import Tk, Frame, Menu, Text, Scrollbar, Button, BOTH, END
+from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Scrollbar, Listbox, Button, BOTH, END
 import tkFileDialog, tkMessageBox
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 
@@ -14,7 +14,6 @@ class PyDAInterface(Frame):
         self.disassembler = disassembler
         self.initUI()
         self.centerWindow()
-        self.focus_force()
 
     def initUI(self):
         self.parent.title("PyDA")
@@ -33,23 +32,35 @@ class PyDAInterface(Frame):
 
         ## Create the PyDA toolbar ##
         self.toolbar = Frame()
-        
-        self.import_button = Button(text="Import", borderwidth=1, command=self.import_file)
-        self.import_button.pack(in_=self.toolbar, side="left")
+        self.import_button = Button(self.toolbar, text="Import", borderwidth=1, command=self.import_file)
+        self.import_button.pack(side="left")
         #############################
 
+        self.main_frame = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4)
+        
         ## Set up the main PyDA Disassembly Window ##
-        self.mainFrame = Frame(borderwidth=1, relief="sunken")
-        self.disassembly_text_widget = Text(background="white", borderwidth=0, highlightthickness=0)
-        self.scroller = Scrollbar(orient="vertical", borderwidth=1, command=self.disassembly_text_widget.yview)
-        self.disassembly_text_widget.configure(yscrollcommand=self.scroller.set)
-        self.scroller.pack(in_=self.mainFrame, side="right", fill="y", expand=False)
-        self.disassembly_text_widget.pack(in_=self.mainFrame, side="left", fill="both", expand=True)
+        self.disassembly_frame = Frame(self.main_frame)
+        self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1)
+        self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1, command=self.disassembly_text_widget.yview)
+        self.disassembly_text_widget.configure(yscrollcommand=self.dis_text_scroller.set)
+        self.dis_text_scroller.pack(side="right", fill="y", expand=False)
+        self.disassembly_text_widget.pack(side="left", fill="both", expand=True)
         #############################################
 
+       ## Functions Side Bar ##
+        self.functions_frame = Frame(self.main_frame)
+        self.functions_listbox = Listbox(self.functions_frame, background="white", borderwidth=1, highlightthickness=1)
+        self.functions_scroller = Scrollbar(self.functions_frame, orient="vertical", borderwidth=1, command=self.functions_listbox.yview)
+        self.functions_listbox.configure(yscrollcommand=self.functions_scroller.set)
+        self.functions_scroller.pack(side="right", fill="y", expand=False)
+        self.functions_listbox.pack(side="left", fill="both", expand=True)
+        ########################
+
         ## Now pack things in the correct order ##
+        self.main_frame.add(self.functions_frame)
+        self.main_frame.add(self.disassembly_frame)
         self.toolbar.pack(side="top", fill="x")
-        self.mainFrame.pack(side="bottom", fill="both", expand=True)
+        self.main_frame.pack(side="bottom", fill="both", expand=True)
         ##########################################
 
         self.parent.bind("<Button-3>", self.contextMenu)
