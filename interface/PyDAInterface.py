@@ -1,4 +1,4 @@
-from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Scrollbar, Listbox, Button, BOTH, END
+from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, BOTH, END
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from ttk import Notebook
 import tkFileDialog, tkMessageBox
@@ -37,10 +37,11 @@ class PyDAInterface(Frame):
         self.import_button.pack(side="left")
         #############################
 
-        self.main_frame = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4)
+        self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
+        self.main_window = PanedWindow(self.top_level_window, borderwidth=1, relief="sunken", sashwidth=4)
 
-        self.right_notebook = Notebook(self.main_frame)
-        self.left_notebook = Notebook(self.main_frame)
+        self.right_notebook = Notebook(self.main_window)
+        self.left_notebook = Notebook(self.main_window)
         
         ## Set up the main PyDA Disassembly Window ##
         self.disassembly_frame = Frame(self.right_notebook)
@@ -82,11 +83,26 @@ class PyDAInterface(Frame):
         self.left_notebook.add(self.strings_frame, text="Strings")
         #####################
 
+        ## Chat Window ##
+        self.chat_frame = Frame(self.top_level_window, borderwidth=1, relief="sunken")
+        self.chat_recv_frame = Frame(self.chat_frame)
+        self.chat_text_widget = Text(self.chat_recv_frame, background="white", borderwidth=1, highlightthickness=1)
+        self.chat_text_scroller = Scrollbar(self.chat_recv_frame, orient="vertical", borderwidth=1, command=self.chat_text_widget.yview)
+        self.chat_text_widget.configure(yscrollcommand=self.chat_text_scroller.set)
+        self.chat_text_scroller.pack(side="right", fill="y", expand=False)
+        self.chat_text_widget.pack(side="left", fill="both", expand=True)
+        self.chat_send_text = Entry(self.chat_frame, background="white", borderwidth=2, highlightthickness=1)
+        self.chat_send_text.pack(side="bottom", fill="x", expand=False)
+        self.chat_recv_frame.pack(side="top", fill="both", expand=True)
+        #################
+
         ## Now pack things in the correct order ##
-        self.main_frame.add(self.left_notebook)
-        self.main_frame.add(self.right_notebook)
+        self.main_window.add(self.left_notebook)
+        self.main_window.add(self.right_notebook)
+        self.top_level_window.add(self.main_window)
+        self.top_level_window.add(self.chat_frame)
         self.toolbar.pack(side="top", fill="x")
-        self.main_frame.pack(side="bottom", fill="both", expand=True)
+        self.top_level_window.pack(side="top", fill="both", expand=True)
         ##########################################
 
         self.parent.bind("<Button-3>", self.contextMenu)
