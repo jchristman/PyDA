@@ -1,6 +1,7 @@
 from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Scrollbar, Listbox, Button, BOTH, END
-import tkFileDialog, tkMessageBox
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
+from ttk import Notebook
+import tkFileDialog, tkMessageBox
 
 def build_and_run(disassembler):
     root = Tk()
@@ -37,28 +38,53 @@ class PyDAInterface(Frame):
         #############################
 
         self.main_frame = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4)
+
+        self.right_notebook = Notebook(self.main_frame)
+        self.left_notebook = Notebook(self.main_frame)
         
         ## Set up the main PyDA Disassembly Window ##
-        self.disassembly_frame = Frame(self.main_frame)
+        self.disassembly_frame = Frame(self.right_notebook)
         self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1)
         self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1, command=self.disassembly_text_widget.yview)
         self.disassembly_text_widget.configure(yscrollcommand=self.dis_text_scroller.set)
         self.dis_text_scroller.pack(side="right", fill="y", expand=False)
         self.disassembly_text_widget.pack(side="left", fill="both", expand=True)
+        self.right_notebook.add(self.disassembly_frame, text="Disassembled Code")
         #############################################
 
-       ## Functions Side Bar ##
-        self.functions_frame = Frame(self.main_frame)
+        ## Set up the Data Section Frame ##
+        self.data_section_frame = Frame(self.right_notebook)
+        self.data_section_text_widget = Text(self.data_section_frame, background="white", borderwidth=1, highlightthickness=1)
+        self.data_sec_text_scroller = Scrollbar(self.data_section_frame, orient="vertical", borderwidth=1, command=self.data_section_text_widget.yview)
+        self.data_section_text_widget.configure(yscrollcommand=self.data_sec_text_scroller.set)
+        self.data_sec_text_scroller.pack(side="right", fill="y", expand=False)
+        self.data_section_text_widget.pack(side="left", fill="both", expand=True)
+        self.right_notebook.add(self.data_section_frame, text="Data Sections")
+        #############################################
+
+        ## Functions Side Bar ##
+        self.functions_frame = Frame(self.left_notebook)
         self.functions_listbox = Listbox(self.functions_frame, background="white", borderwidth=1, highlightthickness=1)
         self.functions_scroller = Scrollbar(self.functions_frame, orient="vertical", borderwidth=1, command=self.functions_listbox.yview)
         self.functions_listbox.configure(yscrollcommand=self.functions_scroller.set)
         self.functions_scroller.pack(side="right", fill="y", expand=False)
         self.functions_listbox.pack(side="left", fill="both", expand=True)
+        self.left_notebook.add(self.functions_frame, text="Functions")
         ########################
 
+        ## String Side Bar ##
+        self.strings_frame = Frame(self.left_notebook)
+        self.strings_listbox = Listbox(self.strings_frame, background="white", borderwidth=1, highlightthickness=1)
+        self.strings_scroller = Scrollbar(self.strings_frame, orient="vertical", borderwidth=1, command=self.strings_listbox.yview)
+        self.strings_listbox.configure(yscrollcommand=self.strings_scroller.set)
+        self.strings_scroller.pack(side="right", fill="y", expand=False)
+        self.strings_listbox.pack(side="left", fill="both", expand=True)
+        self.left_notebook.add(self.strings_frame, text="Strings")
+        #####################
+
         ## Now pack things in the correct order ##
-        self.main_frame.add(self.functions_frame)
-        self.main_frame.add(self.disassembly_frame)
+        self.main_frame.add(self.left_notebook)
+        self.main_frame.add(self.right_notebook)
         self.toolbar.pack(side="top", fill="x")
         self.main_frame.pack(side="bottom", fill="both", expand=True)
         ##########################################
@@ -95,6 +121,9 @@ class PyDAInterface(Frame):
             disassembly = self.disassembler.disassemble()
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 # Set current text to file contents
+                for function in disassembly.functions:
+                    self.functions_listbox.insert(END, function.name)
+                
                 self.disassembly_text_widget.delete(0.0, END)
                 self.disassembly_text_widget.insert(0.0, disassembly.toString())
 

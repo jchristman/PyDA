@@ -30,13 +30,16 @@ class CommonSectionFormat:
         self.name = section_name
         self.instructions = []
         self.functions = []
+        self.functions_reverse_lookup = {}
 
     def addInst(self, inst):
         if isinstance(inst, CommonInstFormat):
             self.instructions.append(inst)
 
-    def addFunction(self, start_address, end_address, name):
-        self.functions.append(CommonFunctionFormat(start_address, end_address, name, self))
+    def addFunction(self, start_index, end_index, name):
+        func = CommonFunctionFormat(start_index, end_index, name, self)
+        self.functions.append(func)
+        self.functions_reverse_lookup[func.start_address] = func
 
     def searchForInstSequence(self, inst_sequence, start_index=0, num_results=-1):
         sequence_indices = []
@@ -65,14 +68,16 @@ class CommonSectionFormat:
     def searchForFunctions(self):
         prolog_sequence = [CommonInstFormat(None, 'push', 'ebp'), CommonInstFormat(None, 'mov', 'ebp, esp'), CommonInstFormat(None, 'sub', 'esp, WILDCARD')]
         function_inst_indices = self.searchForInstSequence(prolog_sequence)
-        for function_index in function_inst_indices:
+        for i,function_index in enumerate(function_inst_indices):
             if function_index == len(self.instructions):
                 break
             epilog_index = self.findFunctionEpilog(function_index)
-            self.functions.append(CommonFunctionFormat(function_index, epilog_index, 'func_%i' % len(self.functions), self))
-
-        for function in self.functions:
-            print 'Function Found! %s : %s, %08x-%08x' % (function.parent_section.name, function.name, function.start_address, function.end_address)
+            try:
+                if epilog_index >= function_inst_indices[i+1]: # This makes sure there are no overlapping functions. It's terrible and a klooge for now. FIXME
+                    epilog_index = function_inst_indices[i+1] - 1
+            except:
+                pass
+            self.addFunction(function_index, epilog_index, 'func_%i' % len(self.functions))
 
     def findFunctionEpilog(self, start_inst_index):
         epilog_1 = [CommonInstFormat(None, 'pop', 'ebp'), CommonInstFormat(None, 'ret', '')]
@@ -88,10 +93,12 @@ class CommonProgramDisassemblyFormat:
     def __init__(self, program_info):
         self.program_info = program_info
         self.sections = []
+        self.functions = []
 
     def addSection(self, section):
         if isinstance(section, CommonSectionFormat) and len(section.instructions) > 0:
             self.sections.append(section.sort())
+            self.functions += section.functions
 
     def sort(self):
         self.sections = sorted(self.sections, key=lambda x: x.instructions[0].address)
@@ -102,8 +109,34 @@ class CommonProgramDisassemblyFormat:
         
         for section in self.sections:
             string += '\n------------------------------------------------------\n'
-            string += '\tSection Name: %s\n\n' % section.name
+            string += '\tSection Name: %s\n' % section.name
+            string += '\t%i functions in this section\n\n' % len(section.functions)
+
+            # This variable will save us some run time by keeping track of which function we just placed in the text
+            current_func_index = 0
+            func_started = False
+
             for inst in section.instructions:
+                try:
+                    if not func_started and inst.address == section.functions[current_func_index].start_address:
+                        func_started = True
+                        string += '\n============ Function Start ============\nFunction Name: %s\n\n' % section.functions[current_func_index].name
+                except:
+                    pass # We don't have any more functions
+                
+                if inst.mnemonic == 'call':
+                    try:
+                        func_addr = int(inst.op_str, 16)
+                        func = section.functions_reverse_lookup[func_addr]
+                        inst.op_str = func.name
+                    except:
+                        pass # We didn't find the function or the conversion to an int failed
+                
                 string += '%s - 0x%08x:\t%s\t%s\n' % (section.name, inst.address, inst.mnemonic, inst.op_str)
+                
+                if func_started and inst.address == section.functions[current_func_index].end_address:
+                    func_started = False
+                    current_func_index += 1
+                    string += '============ Function End ============\n\n'
 
         return string
