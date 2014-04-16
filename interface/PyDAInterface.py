@@ -1,6 +1,7 @@
-from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, BOTH, END
+from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, BOTH, END, INSERT
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from ttk import Notebook
+from FunctionNameManager import FunctionNameManager
 import tkFileDialog, tkMessageBox
 
 def build_and_run(disassembler):
@@ -105,7 +106,8 @@ class PyDAInterface(Frame):
         self.top_level_window.pack(side="top", fill="both", expand=True)
         ##########################################
 
-        self.parent.bind("<Button-3>", self.contextMenu)
+        self.function_name_manager = FunctionNameManager(self.disassembly_text_widget)
+        self.disassembly_text_widget.insert(INSERT, "This is a test", self.function_name_manager.add(self.function_name_right_click))
 
     def centerWindow(self):
         height = self.parent.winfo_screenheight()*3/4
@@ -113,6 +115,9 @@ class PyDAInterface(Frame):
         x = (self.parent.winfo_screenwidth() - width)/2
         y = (self.parent.winfo_screenheight() - height)/2
         self.parent.geometry('%dx%d+%d+%d' % (width, height, x, y))
+
+    def function_name_right_click(self, function_tag):
+        print 'Right clicked %s!' % function_tag
 
     def contextMenu(self, e):
         print vars(e)
