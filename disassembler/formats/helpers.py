@@ -103,24 +103,21 @@ class CommonProgramDisassemblyFormat:
     def sort(self):
         self.sections = sorted(self.sections, key=lambda x: x.instructions[0].address)
 
-    def toString(self):
+    def serialize(self):
         self.sort()
-        string = self.program_info
+        data = []
         
         for section in self.sections:
-            string += '\n------------------------------------------------------\n'
-            string += '\tSection Name: %s\n' % section.name
-            string += '\t%i functions in this section\n\n' % len(section.functions)
-
             # This variable will save us some run time by keeping track of which function we just placed in the text
             current_func_index = 0
             func_started = False
+
+            print 'Parsing new section.\n    Section Name: %s\n    Number of functions in section: %i' % (section.name, len(section.functions))
 
             for inst in section.instructions:
                 try:
                     if not func_started and inst.address == section.functions[current_func_index].start_address:
                         func_started = True
-                        string += '\n============ Function Start ============\nFunction Name: %s\n\n' % section.functions[current_func_index].name
                 except:
                     pass # We don't have any more functions
                 
@@ -132,11 +129,10 @@ class CommonProgramDisassemblyFormat:
                     except:
                         pass # We didn't find the function or the conversion to an int failed
                 
-                string += '%s - 0x%08x:\t%s\t%s\n' % (section.name, inst.address, inst.mnemonic, inst.op_str)
+                data.append((section.name, inst.address, inst.mnemonic, inst.op_str, inst.function))
                 
                 if func_started and inst.address == section.functions[current_func_index].end_address:
                     func_started = False
                     current_func_index += 1
-                    string += '============ Function End ============\n\n'
 
-        return string
+        return data

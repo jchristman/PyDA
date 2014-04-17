@@ -11,8 +11,8 @@ class TextContextManager:
         
         self.bold_font = Font(weight="bold")
 
-        self.text.tag_config("function", foreground="blue")
-        self.text.tag_bind("function", button, self.right_click)
+        self.text.tag_config("op_str", foreground="blue")
+        self.text.tag_bind("op_str", button, self.right_click)
         self.text.tag_config("address", foreground="darkblue")
         self.text.tag_bind("address", button, self.right_click)
         self.text.tag_config("section", foreground="darkgreen", font=self.bold_font)
@@ -23,11 +23,11 @@ class TextContextManager:
         self.reset()
 
     def reset(self):
-        self.functions = {}
+        self.op_strs = {}
         self.addresses = {}
         self.comments  = {}
         self.sections  = {}
-        self.reverse_tag_lookup = {'function' : self.functions, 'address' : self.addresses, 'comment' : self.comments, 'section' : self.sections}
+        self.reverse_tag_lookup = {'op_str' : self.op_strs, 'address' : self.addresses, 'comment' : self.comments, 'section' : self.sections}
 
     def add(self, action, tag_prefix):
         tag = "%s-%i" % (tag_prefix, len(self.reverse_tag_lookup[tag_prefix]))
@@ -43,8 +43,8 @@ class TextContextManager:
     def addAddress(self, action):
         return self.add(action, 'address')
 
-    def addFunction(self, action):
-        return self.add(action, 'function')
+    def addOpStr(self, action):
+        return self.add(action, 'op_str')
 
     def right_click(self, event):
         for tag in self.text.tag_names(CURRENT)[1:]:

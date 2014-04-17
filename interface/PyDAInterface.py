@@ -2,18 +2,21 @@ from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar,
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from ttk import Notebook
 from TextContextManager import TextContextManager
+from StdoutRedirector import StdoutRedirector
 import tkFileDialog, tkMessageBox
+import sys
 
-def build_and_run(disassembler):
+def build_and_run(disassembler, server):
     root = Tk()
-    app = PyDAInterface(root, disassembler)
+    app = PyDAInterface(root, disassembler, server)
     root.mainloop()
 
 class PyDAInterface(Frame):
-    def __init__(self, parent, disassembler):
+    def __init__(self, parent, disassembler, server):
         Frame.__init__(self, parent)
         self.parent = parent
         self.disassembler = disassembler
+        self.server = server
         self.initUI()
         self.centerWindow()
 
@@ -25,7 +28,7 @@ class PyDAInterface(Frame):
         self.parent.config(menu=self.menubar)
 
         self.fileMenu = Menu(self.menubar, tearoff=0)
-        self.fileMenu.add_command(label="Import", command=self.import_file)
+        self.fileMenu.add_command(label="Import", command=self.importFile)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Exit", command=self.onExit)
 
@@ -34,8 +37,10 @@ class PyDAInterface(Frame):
 
         ## Create the PyDA toolbar ##
         self.toolbar = Frame()
-        self.import_button = Button(self.toolbar, text="Import", borderwidth=1, command=self.import_file)
+        self.import_button = Button(self.toolbar, text="Import", borderwidth=1, command=self.importFile)
         self.import_button.pack(side="left")
+        self.share_button = Button(self.toolbar, text="Share", borderwidth=1, command=self.share)
+        self.share_button.pack(side="left")
         #############################
 
         self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
@@ -107,13 +112,8 @@ class PyDAInterface(Frame):
         ##########################################
 
         self.text_context_manager = TextContextManager(self.disassembly_text_widget)
-        self.disassembly_text_widget.insert(INSERT, ".text", self.text_context_manager.addSection(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, " ")
-        self.disassembly_text_widget.insert(INSERT, "0x0804C040", self.text_context_manager.addAddress(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, " call ")
-        self.disassembly_text_widget.insert(INSERT, "func_0", self.text_context_manager.addFunction(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, "   ")
-        self.disassembly_text_widget.insert(INSERT, "-- This is a test comment", self.text_context_manager.addComment(self.text_context_right_click))
+        sys.stdout = StdoutRedirector(self.stdoutMessage)
+        print "Stdout is being redirected to here"
 
     def centerWindow(self):
         height = self.parent.winfo_screenheight()*3/4
@@ -123,7 +123,11 @@ class PyDAInterface(Frame):
         self.parent.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
     def text_context_right_click(self, text_tag):
-        print 'Right clicked %s!' % text_tag
+        print 'Right clicked %s'
+
+    def stdoutMessage(self, message):
+        self.chat_text_widget.insert(INSERT, '%s' % message)
+        self.chat_text_widget.yview_moveto(1)
 
     def contextMenu(self, e):
         print vars(e)
@@ -135,7 +139,7 @@ class PyDAInterface(Frame):
         self.quit()
 
     ########### PyDA Specific Functions ###########
-    def import_file(self):
+    def importFile(self):
         # Returns the opened file
         dialog = tkFileDialog.Open(self)
         file = dialog.show()
@@ -144,15 +148,44 @@ class PyDAInterface(Frame):
             binary = open(file, 'rb').read()
 
             self.disassembler.load(binary)
-
+            print 'Attempting to disassemble binary'
             disassembly = self.disassembler.disassemble()
+            print 'Disassembled successfully!'
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
-                # Set current text to file contents
                 for function in disassembly.functions:
                     self.functions_listbox.insert(END, function.name)
                 
                 self.disassembly_text_widget.delete(0.0, END)
-                self.disassembly_text_widget.insert(0.0, disassembly.toString())
+                
+                self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
+                self.current_section = ''
+                self.current_function = ''
+                for line in disassembly.serialize():
+                    self.insertLine(line)
+
+    def insertLine(self, line):
+        if not line[0] == self.current_section: # Then we are entering a new section
+            self.current_section = line[0]
+            self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
+            self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
+        if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
+            self.current_function = line[4]
+            self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
+            self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
+        self.disassembly_text_widget.insert(INSERT, line[0], self.text_context_manager.addSection(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, " - ")
+        self.disassembly_text_widget.insert(INSERT, "%08x" % line[1], self.text_context_manager.addAddress(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, ": ")
+        self.disassembly_text_widget.insert(INSERT, line[2])
+        self.disassembly_text_widget.insert(INSERT, " ")
+        self.disassembly_text_widget.insert(INSERT, line[3], self.text_context_manager.addOpStr(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, " ")
+        self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, "\n")
+
+    def share(self):
+        print 'Server started!'
+        self.server.start()
 
 if __name__ == '__main__':
     build_and_run()

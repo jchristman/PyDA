@@ -1,10 +1,12 @@
 from interface import PyDAInterface
 from disassembler.Disassembler import Disassembler
+from server.PyDAServer import PyDAServer
 
 class PyDA:
     def __init__(self):
         dis = Disassembler()
-        PyDAInterface.build_and_run(dis)
+        server = PyDAServer('0.0.0.0',9000)
+        PyDAInterface.build_and_run(dis, server)
 
 if __name__ == '__main__':
     pyda = PyDA()
