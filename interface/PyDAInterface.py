@@ -1,7 +1,7 @@
 from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, BOTH, END, INSERT
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from ttk import Notebook
-from FunctionNameManager import FunctionNameManager
+from TextContextManager import TextContextManager
 import tkFileDialog, tkMessageBox
 
 def build_and_run(disassembler):
@@ -106,8 +106,14 @@ class PyDAInterface(Frame):
         self.top_level_window.pack(side="top", fill="both", expand=True)
         ##########################################
 
-        self.function_name_manager = FunctionNameManager(self.disassembly_text_widget)
-        self.disassembly_text_widget.insert(INSERT, "This is a test", self.function_name_manager.add(self.function_name_right_click))
+        self.text_context_manager = TextContextManager(self.disassembly_text_widget)
+        self.disassembly_text_widget.insert(INSERT, ".text", self.text_context_manager.addSection(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, " ")
+        self.disassembly_text_widget.insert(INSERT, "0x0804C040", self.text_context_manager.addAddress(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, " call ")
+        self.disassembly_text_widget.insert(INSERT, "func_0", self.text_context_manager.addFunction(self.text_context_right_click))
+        self.disassembly_text_widget.insert(INSERT, "   ")
+        self.disassembly_text_widget.insert(INSERT, "-- This is a test comment", self.text_context_manager.addComment(self.text_context_right_click))
 
     def centerWindow(self):
         height = self.parent.winfo_screenheight()*3/4
@@ -116,8 +122,8 @@ class PyDAInterface(Frame):
         y = (self.parent.winfo_screenheight() - height)/2
         self.parent.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
-    def function_name_right_click(self, function_tag):
-        print 'Right clicked %s!' % function_tag
+    def text_context_right_click(self, text_tag):
+        print 'Right clicked %s!' % text_tag
 
     def contextMenu(self, e):
         print vars(e)
