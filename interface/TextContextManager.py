@@ -15,7 +15,7 @@ class TextContextManager:
         self.text.tag_bind("op_str", button, self.right_click)
         self.text.tag_config("address", foreground="darkblue")
         self.text.tag_bind("address", button, self.right_click)
-        self.text.tag_config("section", foreground="darkgreen", font=self.bold_font)
+        self.text.tag_config("section", foreground="darkgreen")
         self.text.tag_bind("section", button, self.right_click)
         self.text.tag_config("comment", foreground="darkgreen")
         self.text.tag_bind("comment", button, self.right_click)

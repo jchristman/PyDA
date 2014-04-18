@@ -123,7 +123,7 @@ class PyDAInterface(Frame):
         self.parent.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
     def text_context_right_click(self, text_tag):
-        print 'Right clicked %s'
+        print 'Right clicked %s' % text_tag
 
     def stdoutMessage(self, message):
         self.chat_text_widget.insert(INSERT, '%s' % message)
