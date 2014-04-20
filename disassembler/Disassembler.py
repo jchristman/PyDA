@@ -4,7 +4,10 @@ class Disassembler:
     def load(self, binary):
         self.binary = binary
         for format in IMPORTED_FORMATS:
-            self.dis = format.disassemble(self.binary)
+            try:
+                self.dis = format.disassemble(self.binary)
+            except:
+                print "Nope, not",`format`
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 

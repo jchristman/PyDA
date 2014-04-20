@@ -48,7 +48,7 @@ class PyDAInterface(Frame):
 
         self.right_notebook = Notebook(self.main_window)
         self.left_notebook = Notebook(self.main_window)
-        
+
         ## Set up the main PyDA Disassembly Window ##
         self.disassembly_frame = Frame(self.right_notebook)
         self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1)
@@ -142,10 +142,11 @@ class PyDAInterface(Frame):
     def importFile(self):
         # Returns the opened file
         dialog = tkFileDialog.Open(self)
-        file = dialog.show()
-        
-        if not file == '':
-            binary = open(file, 'rb').read()
+        fn = dialog.show()
+        print "opening:",fn
+
+        if not fn == '':
+            binary = open(fn, 'rb').read()
 
             self.disassembler.load(binary)
             print 'Attempting to disassemble binary'
@@ -154,9 +155,9 @@ class PyDAInterface(Frame):
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
                     self.functions_listbox.insert(END, function.name)
-                
+
                 self.disassembly_text_widget.delete(0.0, END)
-                
+
                 self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
                 self.current_section = ''
                 self.current_function = ''
