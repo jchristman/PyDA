@@ -237,7 +237,8 @@ class PE:
         for s in self.getExecSections():
             if s["name"] in PE.dont_disassemble:
                 continue
-
+            
+            s["name"] = s["name"].replace('\x00','')
             section = CommonSectionFormat(s["name"])
 
             for inst in md.disasm(s["opcodes"], s["vaddr"]):

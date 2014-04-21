@@ -6,6 +6,7 @@ class Disassembler:
         for format in IMPORTED_FORMATS:
             try:
                 self.dis = format.disassemble(self.binary)
+                break
             except:
                 print "Nope, not",`format`
         if not self.dis:

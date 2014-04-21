@@ -112,7 +112,7 @@ class PyDAInterface(Frame):
         ##########################################
 
         self.text_context_manager = TextContextManager(self.disassembly_text_widget)
-        sys.stdout = StdoutRedirector(self.stdoutMessage)
+        #sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -161,28 +161,36 @@ class PyDAInterface(Frame):
                 self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
                 self.current_section = ''
                 self.current_function = ''
-                for line in disassembly.serialize():
+                self.dis_lines = disassembly.serialize()
+                num = len(self.dis_lines)
+                print 'There are %i lines to process' % num
+                for index,line in enumerate(self.dis_lines):
+                    if (num - index) % 1000 == 0:
+                        print 'There are %i lines to process' % (num - index)
                     self.insertLine(line)
 
     def insertLine(self, line):
-        if not line[0] == self.current_section: # Then we are entering a new section
-            self.current_section = line[0]
-            self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
-            self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
-        if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
-            self.current_function = line[4]
-            self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
-            self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
-        self.disassembly_text_widget.insert(INSERT, line[0], self.text_context_manager.addSection(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, " - ")
-        self.disassembly_text_widget.insert(INSERT, "%08x" % line[1], self.text_context_manager.addAddress(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, ": ")
-        self.disassembly_text_widget.insert(INSERT, line[2])
-        self.disassembly_text_widget.insert(INSERT, " ")
-        self.disassembly_text_widget.insert(INSERT, line[3], self.text_context_manager.addOpStr(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, " ")
-        self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
-        self.disassembly_text_widget.insert(INSERT, "\n")
+        try:
+            if not line[0] == self.current_section: # Then we are entering a new section
+                self.current_section = line[0]
+                self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
+                self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
+            if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
+                self.current_function = line[4]
+                self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
+                self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
+            self.disassembly_text_widget.insert(INSERT, line[0], self.text_context_manager.addSection(self.text_context_right_click))
+            self.disassembly_text_widget.insert(INSERT, " - ")
+            self.disassembly_text_widget.insert(INSERT, "%08x" % line[1], self.text_context_manager.addAddress(self.text_context_right_click))
+            self.disassembly_text_widget.insert(INSERT, ": ")
+            self.disassembly_text_widget.insert(INSERT, line[2])
+            self.disassembly_text_widget.insert(INSERT, " ")
+            self.disassembly_text_widget.insert(INSERT, line[3], self.text_context_manager.addOpStr(self.text_context_right_click))
+            self.disassembly_text_widget.insert(INSERT, " ")
+            self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
+            self.disassembly_text_widget.insert(INSERT, "\n")
+        except KeyboardInterrupt:
+            print self.dis_lines.index(line), line
 
     def share(self):
         print 'Server started!'
