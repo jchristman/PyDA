@@ -11,23 +11,27 @@ class TextContextManager:
         
         self.bold_font = Font(weight="bold")
 
-        self.text.tag_config("op_str", foreground="blue")
-        self.text.tag_bind("op_str", button, self.right_click)
-        self.text.tag_config("address", foreground="darkblue")
-        self.text.tag_bind("address", button, self.right_click)
+
         self.text.tag_config("section", foreground="darkgreen")
         self.text.tag_bind("section", button, self.right_click)
+        self.text.tag_config("address", foreground="darkorange")
+        self.text.tag_bind("address", button, self.right_click)
+        self.text.tag_config("mnemonic", foreground="blue")
+        self.text.tag_bind("mnemonic", button, self.right_click)
+        self.text.tag_config("op_str", foreground="blue")
+        self.text.tag_bind("op_str", button, self.right_click)
         self.text.tag_config("comment", foreground="darkgreen")
         self.text.tag_bind("comment", button, self.right_click)
 
         self.reset()
 
     def reset(self):
-        self.op_strs = {}
-        self.addresses = {}
-        self.comments  = {}
         self.sections  = {}
-        self.reverse_tag_lookup = {'op_str' : self.op_strs, 'address' : self.addresses, 'comment' : self.comments, 'section' : self.sections}
+        self.addresses = {}
+        self.mnemonics = {}
+        self.op_strs = {}
+        self.comments  = {}
+        self.reverse_tag_lookup = {'op_str' : self.op_strs, 'address' : self.addresses, 'comment' : self.comments, 'section' : self.sections, 'mnemonic' : self.mnemonics}
 
     def add(self, action, tag_prefix):
         tag = "%s-%i" % (tag_prefix, len(self.reverse_tag_lookup[tag_prefix]))
