@@ -1,8 +1,9 @@
 from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from ttk import Notebook
-from TextContextManager import TextContextManager
+from WidgetClickContextManager import WidgetClickContextManager
 from StdoutRedirector import StdoutRedirector
+from platform import system
 import tkFileDialog, tkMessageBox
 import sys
 
@@ -111,7 +112,10 @@ class PyDAInterface(Frame):
         self.top_level_window.pack(side="top", fill="both", expand=True)
         ##########################################
 
-        self.text_context_manager = TextContextManager(self.disassembly_text_widget)
+        right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
+        self.disassembly_text_context_manager = WidgetClickContextManager(self.disassembly_text_widget, right_click_button, 
+                                                self.text_context_right_click, [('section','darkgreen'),('address','darkorange'),
+                                                ('mnemonic','blue'),('op_str','blue'),('comment','darkgreen')])
         #sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
@@ -158,68 +162,38 @@ class PyDAInterface(Frame):
 
                 self.disassembly_text_widget.delete(0.0, END)
 
-                self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
-                self.current_section = ''
-                self.current_function = ''
                 self.dis_lines = disassembly.serialize()
                 num = len(self.dis_lines)
                 print 'There are %i lines to process' % num
-                disassembled_text = ''
+                
+                self.current_section = ''
+                self.current_function = ''
+                self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
                 for line in self.dis_lines:
-                    disassembled_text += line[0] + ': ' # Section name regex = "^\.[a-zA-Z_\-]+"
-                    disassembled_text += '0x%x' % line[1] + ' - ' # Address regex = ": 0x[0-9]+ "
-                    disassembled_text += line[2] + '  ' # mnemonic regex = "\- [a-zA-Z]+ "
-                    disassembled_text += line[3] + '    ' # op_str regex = "  [a-zA-Z0-9, ]"
-                    #disassembled_text += line[4]
-                    disassembled_text += '\n'
-                self.disassembly_text_widget.insert(INSERT, disassembled_text)
-                self.addTagsToPattern(r'^\.[a-zA-Z_\-]+', 'section', regexp=True)
-                self.addTagsToPattern(r': 0x[0-9A-Fa-f]+ ', 'address', regexp=True, regexp_tag_offset=2, regexp_tag_end=1)
-                self.addTagsToPattern(r'\- [a-zA-Z]+ ', 'mnemonic', regexp=True, regexp_tag_offset=2, regexp_tag_end=1)
-                self.addTagsToPattern(r'  [a-zA-Z0-9, \-]+    ', 'op_str', regexp=True, regexp_tag_offset=2, regexp_tag_end=4)
-                self.addTagsToPattern(r'--.*$', 'commen', regexp=True)
+                    self.insertLine(line)
 
-    def addTagsToPattern(self, pattern, tag, start="1.0", end="end", regexp=False, regexp_tag_offset=0, regexp_tag_end=0):
-        start = self.disassembly_text_widget.index(start)
-        end = self.disassembly_text_widget.index(end)
-        self.disassembly_text_widget.mark_set("matchStart",start)
-        self.disassembly_text_widget.mark_set("matchEnd",start)
-        self.disassembly_text_widget.mark_set("searchLimit", end)
-
-        count = IntVar()
-        while True:
-            index = self.disassembly_text_widget.search(pattern, "matchEnd","searchLimit",
-                                                        count=count, regexp=regexp)
-            if index == "": print 'No more matches'; break
-            index = index.split('.')
-            index = index[0] + '.' + str(int(index[1]) + regexp_tag_offset)
-            #print "%s+%sc" % (index,count.get()-regexp_tag_end),type(index)
-            self.disassembly_text_widget.mark_set("matchStart", index)
-            self.disassembly_text_widget.mark_set("matchEnd", "%s+%sc" % (index,count.get()-regexp_tag_end))
-            self.disassembly_text_widget.tag_add(tag, "matchStart","matchEnd")
-
-##    def insertLine(self, line):
-##        try:
-##            if not line[0] == self.current_section: # Then we are entering a new section
-##                self.current_section = line[0]
-##                self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
-##                self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
-##            if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
-##                self.current_function = line[4]
-##                self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
-##                self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
-##            self.disassembly_text_widget.insert(INSERT, line[0], self.text_context_manager.addSection(self.text_context_right_click))
-##            self.disassembly_text_widget.insert(INSERT, " - ")
-##            self.disassembly_text_widget.insert(INSERT, "%08x" % line[1], self.text_context_manager.addAddress(self.text_context_right_click))
-##            self.disassembly_text_widget.insert(INSERT, ": ")
-##            self.disassembly_text_widget.insert(INSERT, line[2])
-##            self.disassembly_text_widget.insert(INSERT, " ")
-##            self.disassembly_text_widget.insert(INSERT, line[3], self.text_context_manager.addOpStr(self.text_context_right_click))
-##            self.disassembly_text_widget.insert(INSERT, " ")
-##            self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
-##            self.disassembly_text_widget.insert(INSERT, "\n")
-##        except KeyboardInterrupt:
-##            print self.dis_lines.index(line), line
+    def insertLine(self, line):
+        try:
+            if not line[0] == self.current_section: # Then we are entering a new section
+                self.current_section = line[0]
+                self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
+                self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
+            if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
+                self.current_function = line[4]
+                self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
+                self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
+            self.disassembly_text_widget.insert(INSERT, line[0], self.disassembly_text_context_manager.createTags('section'))
+            self.disassembly_text_widget.insert(INSERT, " - ")
+            self.disassembly_text_widget.insert(INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address'))
+            self.disassembly_text_widget.insert(INSERT, ": ")
+            self.disassembly_text_widget.insert(INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic'))
+            self.disassembly_text_widget.insert(INSERT, " ")
+            self.disassembly_text_widget.insert(INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str'))
+            self.disassembly_text_widget.insert(INSERT, " ")
+            #self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
+            self.disassembly_text_widget.insert(INSERT, "\n")
+        except KeyboardInterrupt:
+            print self.dis_lines.index(line), line
 
     def share(self):
         print 'Server started!'
