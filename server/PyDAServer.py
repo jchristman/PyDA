@@ -12,6 +12,8 @@ class PyDAServer:
         server = socket.socket()
         server.bind((self.interface, self.port))
         server.listen(1)
+        print 'Server started on %s' % str((self.interface, self.port))
+        print 'Listening for connections now.'
         try:
             while True:
                 client, info = server.accept()

@@ -1,6 +1,6 @@
 from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT
+from ttk import Notebook,Progressbar
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
-from ttk import Notebook
 from WidgetClickContextManager import WidgetClickContextManager
 from StdoutRedirector import StdoutRedirector
 from platform import system
@@ -43,6 +43,16 @@ class PyDAInterface(Frame):
         self.share_button = Button(self.toolbar, text="Share", borderwidth=1, command=self.share)
         self.share_button.pack(side="left")
         #############################
+        
+        ## Create the PyDA status bar ##
+        self.status_bar = Frame(borderwidth=2)
+        self.status_progress_bar = Progressbar(self.status_bar, length=200, mode='determinate')
+        self.status_progress_bar.pack(side='right', padx=3)
+        self.static_status_label = Label(self.status_bar, text='Status:')
+        self.status_label = Label(self.status_bar, text='Ready')
+        self.static_status_label.pack(side='left')
+        self.status_label.pack(side='left')
+        #############################
 
         self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
         self.main_window = PanedWindow(self.top_level_window, borderwidth=1, relief="sunken", sashwidth=4)
@@ -55,7 +65,7 @@ class PyDAInterface(Frame):
         self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1)
         self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1, command=self.disassembly_text_widget.yview)
         self.disassembly_text_widget.configure(yscrollcommand=self.dis_text_scroller.set)
-        self.dis_text_scroller.pack(side="right", fill="y", expand=False)
+        self.dis_text_scroller.pack(side="right", fill="y")
         self.disassembly_text_widget.pack(side="left", fill="both", expand=True)
         self.right_notebook.add(self.disassembly_frame, text="Disassembled Code")
         #############################################
@@ -65,7 +75,7 @@ class PyDAInterface(Frame):
         self.data_section_text_widget = Text(self.data_section_frame, background="white", borderwidth=1, highlightthickness=1)
         self.data_sec_text_scroller = Scrollbar(self.data_section_frame, orient="vertical", borderwidth=1, command=self.data_section_text_widget.yview)
         self.data_section_text_widget.configure(yscrollcommand=self.data_sec_text_scroller.set)
-        self.data_sec_text_scroller.pack(side="right", fill="y", expand=False)
+        self.data_sec_text_scroller.pack(side="right", fill="y")
         self.data_section_text_widget.pack(side="left", fill="both", expand=True)
         self.right_notebook.add(self.data_section_frame, text="Data Sections")
         #############################################
@@ -75,7 +85,7 @@ class PyDAInterface(Frame):
         self.functions_listbox = Listbox(self.functions_frame, background="white", borderwidth=1, highlightthickness=1)
         self.functions_scroller = Scrollbar(self.functions_frame, orient="vertical", borderwidth=1, command=self.functions_listbox.yview)
         self.functions_listbox.configure(yscrollcommand=self.functions_scroller.set)
-        self.functions_scroller.pack(side="right", fill="y", expand=False)
+        self.functions_scroller.pack(side="right", fill="y")
         self.functions_listbox.pack(side="left", fill="both", expand=True)
         self.left_notebook.add(self.functions_frame, text="Functions")
         ########################
@@ -85,7 +95,7 @@ class PyDAInterface(Frame):
         self.strings_listbox = Listbox(self.strings_frame, background="white", borderwidth=1, highlightthickness=1)
         self.strings_scroller = Scrollbar(self.strings_frame, orient="vertical", borderwidth=1, command=self.strings_listbox.yview)
         self.strings_listbox.configure(yscrollcommand=self.strings_scroller.set)
-        self.strings_scroller.pack(side="right", fill="y", expand=False)
+        self.strings_scroller.pack(side="right", fill="y")
         self.strings_listbox.pack(side="left", fill="both", expand=True)
         self.left_notebook.add(self.strings_frame, text="Strings")
         #####################
@@ -96,10 +106,10 @@ class PyDAInterface(Frame):
         self.chat_text_widget = Text(self.chat_recv_frame, background="white", borderwidth=1, highlightthickness=1)
         self.chat_text_scroller = Scrollbar(self.chat_recv_frame, orient="vertical", borderwidth=1, command=self.chat_text_widget.yview)
         self.chat_text_widget.configure(yscrollcommand=self.chat_text_scroller.set)
-        self.chat_text_scroller.pack(side="right", fill="y", expand=False)
+        self.chat_text_scroller.pack(side="right", fill="y")
         self.chat_text_widget.pack(side="left", fill="both", expand=True)
         self.chat_send_text = Entry(self.chat_frame, background="white", borderwidth=2, highlightthickness=1)
-        self.chat_send_text.pack(side="bottom", fill="x", expand=False)
+        self.chat_send_text.pack(side="bottom", fill="x")
         self.chat_recv_frame.pack(side="top", fill="both", expand=True)
         #################
 
@@ -109,14 +119,17 @@ class PyDAInterface(Frame):
         self.top_level_window.add(self.main_window)
         self.top_level_window.add(self.chat_frame)
         self.toolbar.pack(side="top", fill="x")
+        self.status_bar.pack(side="bottom", fill="x")
         self.top_level_window.pack(side="top", fill="both", expand=True)
         ##########################################
+
+        self.tk_focusFollowsMouse()
 
         right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
         self.disassembly_text_context_manager = WidgetClickContextManager(self.disassembly_text_widget, right_click_button, 
                                                 self.text_context_right_click, [('section','darkgreen'),('address','darkorange'),
                                                 ('mnemonic','blue'),('op_str','blue'),('comment','darkgreen')])
-        #sys.stdout = StdoutRedirector(self.stdoutMessage)
+        sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -196,7 +209,6 @@ class PyDAInterface(Frame):
             print self.dis_lines.index(line), line
 
     def share(self):
-        print 'Server started!'
         self.server.start()
 
 if __name__ == '__main__':
