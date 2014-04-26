@@ -4,13 +4,60 @@ from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from WidgetClickContextManager import WidgetClickContextManager
 from StdoutRedirector import StdoutRedirector
 from platform import system
-import tkFileDialog, tkMessageBox
+from Queue import Queue
+from thread import start_new_thread
 import sys
+import tkFileDialog, tkMessageBox
 
 def build_and_run(disassembler, server):
-    root = Tk()
-    app = PyDAInterface(root, disassembler, server)
-    root.mainloop()
+    rootApp = RootApplication()
+    app = PyDAInterface(rootApp, disassembler, server)
+    rootApp.mainloop()
+
+class RootApplication(Tk):
+    def __init__(self):
+        Tk.__init__(self)
+        self.callback_queue = Queue()
+        self.progress_monitor = False
+        self.progress_point_callback = None
+        self.total_points = 0
+        self.pollCallbackQueue()
+
+    def startProgressMonitor(self, callback):
+        self.progress_monitor = True
+        self.progress_point_callback = callback
+
+    def stopProgressMonitor(self):
+        self.progress_monitor = False
+
+    def addCallback(self, callback, args=None):
+        self.callback_queue.put((callback, args))
+
+    def addProgressPoint(self):
+        self.addCallback('PROGRESS POINT')
+
+    def pollCallbackQueue(self):
+        pollProcessSize = 500
+        progress_points = 0
+
+        for i in xrange(pollProcessSize):
+            if self.callback_queue.empty():
+                break
+
+            callback,args = self.callback_queue.get()
+            if callback == 'PROGRESS POINT':
+                progress_points += 1
+            elif args:
+                callback(*args)
+            else:
+                callback()
+
+        if self.progress_monitor:
+            self.total_points += progress_points
+            print 'Points processed so far: %d' % self.total_points
+            self.progress_point_callback(progress_points)
+
+        self.after(30, self.pollCallbackQueue)
 
 class PyDAInterface(Frame):
     def __init__(self, parent, disassembler, server):
@@ -47,6 +94,8 @@ class PyDAInterface(Frame):
         ## Create the PyDA status bar ##
         self.status_bar = Frame(borderwidth=2)
         self.status_progress_bar = Progressbar(self.status_bar, length=200, mode='determinate')
+        self.status_progress_bar['maximum'] = 100
+        self.status_progress_bar['value'] = 0
         self.status_progress_bar.pack(side='right', padx=3)
         self.static_status_label = Label(self.status_bar, text='Status:')
         self.status_label = Label(self.status_bar, text='Ready')
@@ -159,11 +208,14 @@ class PyDAInterface(Frame):
     def importFile(self):
         # Returns the opened file
         dialog = tkFileDialog.Open(self)
-        fn = dialog.show()
-        print "opening:",fn
+        file_name = dialog.show()
+        print "Opening: %s" % file_name
+        
+        start_new_thread(self.disassembleFile, (file_name,))
 
-        if not fn == '':
-            binary = open(fn, 'rb').read()
+    def disassembleFile(self, file_name):
+        if not file_name == '':
+            binary = open(file_name, 'rb').read()
 
             self.disassembler.load(binary)
             print 'Attempting to disassemble binary'
@@ -171,40 +223,45 @@ class PyDAInterface(Frame):
             print 'Disassembled successfully!'
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
-                    self.functions_listbox.insert(END, function.name)
+                    self.parent.addCallback(self.functions_listbox.insert, (END, function.name))
 
-                self.disassembly_text_widget.delete(0.0, END)
+                self.parent.addCallback(self.disassembly_text_widget.delete, (0.0, END))
 
                 self.dis_lines = disassembly.serialize()
-                num = len(self.dis_lines)
-                print 'There are %i lines to process' % num
+                lines_to_process = len(self.dis_lines)
                 
                 self.current_section = ''
                 self.current_function = ''
-                self.disassembly_text_widget.insert(INSERT, disassembly.program_info)
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, disassembly.program_info))
+
+                self.status_progress_bar['maximum'] = lines_to_process
+                self.status_progress_bar['value'] = 0
+                self.parent.startProgressMonitor(self.status_progress_bar.step)
                 for line in self.dis_lines:
+                    self.parent.addProgressPoint()
                     self.insertLine(line)
+                self.parent.stopProgressMonitor()
 
     def insertLine(self, line):
         try:
             if not line[0] == self.current_section: # Then we are entering a new section
                 self.current_section = line[0]
-                self.disassembly_text_widget.insert(INSERT, "\n+++++++++++++++++++++++++++++++++\n")
-                self.disassembly_text_widget.insert(INSERT, "    Section Name: %s\n\n" % line[0])
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n+++++++++++++++++++++++++++++++++\n"))
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "    Section Name: %s\n\n" % line[0]))
             if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
                 self.current_function = line[4]
-                self.disassembly_text_widget.insert(INSERT, "\n=================================\n")
-                self.disassembly_text_widget.insert(INSERT, "    Function Name: %s\n\n" % line[4].name)
-            self.disassembly_text_widget.insert(INSERT, line[0], self.disassembly_text_context_manager.createTags('section'))
-            self.disassembly_text_widget.insert(INSERT, " - ")
-            self.disassembly_text_widget.insert(INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address'))
-            self.disassembly_text_widget.insert(INSERT, ": ")
-            self.disassembly_text_widget.insert(INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic'))
-            self.disassembly_text_widget.insert(INSERT, " ")
-            self.disassembly_text_widget.insert(INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str'))
-            self.disassembly_text_widget.insert(INSERT, " ")
-            #self.disassembly_text_widget.insert(INSERT, "", self.text_context_manager.addComment(self.text_context_right_click))
-            self.disassembly_text_widget.insert(INSERT, "\n")
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n=================================\n"))
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "    Function Name: %s\n\n" % line[4].name))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, line[0], self.disassembly_text_context_manager.createTags('section')))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, " - "))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address')))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, ": "))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic')))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, " "))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str')))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, " "))
+            #self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "", self.parent.addCallback(self.text_context_manager.addComment(self.parent.addCallback(self.text_context_right_click)))
+            self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n"))
         except KeyboardInterrupt:
             print self.dis_lines.index(line), line
 
