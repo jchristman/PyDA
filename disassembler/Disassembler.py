@@ -12,6 +12,9 @@ class Disassembler:
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 
+    def getFileType(self):
+        return self.dis.FILETYPE_NAME
+
     def disassemble(self):
         return self.dis.disassemble()
 

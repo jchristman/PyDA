@@ -1,4 +1,4 @@
-from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT
+from Tkinter import Tk, PanedWindow, Frame, Label, Menu, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT, LEFT
 from ttk import Notebook,Progressbar
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from WidgetClickContextManager import WidgetClickContextManager
@@ -52,12 +52,12 @@ class RootApplication(Tk):
             else:
                 callback()
 
-        if self.progress_monitor:
-            self.total_points += progress_points
-            print 'Points processed so far: %d' % self.total_points
-            self.progress_point_callback(progress_points)
+        self.total_points += progress_points
 
-        self.after(30, self.pollCallbackQueue)
+        if self.progress_monitor:
+            self.progress_point_callback(progress_points)
+        
+        self.after(10, self.pollCallbackQueue)
 
 class PyDAInterface(Frame):
     def __init__(self, parent, disassembler, server):
@@ -100,7 +100,7 @@ class PyDAInterface(Frame):
         self.static_status_label = Label(self.status_bar, text='Status:')
         self.status_label = Label(self.status_bar, text='Ready')
         self.static_status_label.pack(side='left')
-        self.status_label.pack(side='left')
+        self.status_label.pack(side='left', fill='x')
         #############################
 
         self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
@@ -204,29 +204,45 @@ class PyDAInterface(Frame):
     def onExit(self):
         self.quit()
 
+    def progressMonitorCallback(self, step):
+        orig = self.status_progress_bar['value']
+        self.status_progress_bar.step(step)
+        if self.status_progress_bar['value'] >= self.status_progress_bar['maximum'] or orig > self.status_progress_bar['value']:
+            self.parent.stopProgressMonitor()
+            self.status('Finished')
+
+    def status(self, message):
+        self.parent.addCallback(self._status, (message,))
+
+    def _status(self, message):
+        self.status_label['text'] = message
+
     ########### PyDA Specific Functions ###########
     def importFile(self):
         # Returns the opened file
         dialog = tkFileDialog.Open(self)
         file_name = dialog.show()
-        print "Opening: %s" % file_name
-        
         start_new_thread(self.disassembleFile, (file_name,))
 
     def disassembleFile(self, file_name):
         if not file_name == '':
             binary = open(file_name, 'rb').read()
 
+            self.status_progress_bar['mode'] = 'indeterminate'
+            self.parent.addCallback(self.status_progress_bar.start)
+            
+            self.status('Loading %s' % file_name)
             self.disassembler.load(binary)
-            print 'Attempting to disassemble binary'
+            self.status('Disassembling as %s' % self.disassembler.getFileType())
             disassembly = self.disassembler.disassemble()
-            print 'Disassembled successfully!'
+            
+            self.parent.addCallback(self.status_progress_bar.stop)
+            
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
                     self.parent.addCallback(self.functions_listbox.insert, (END, function.name))
 
                 self.parent.addCallback(self.disassembly_text_widget.delete, (0.0, END))
-
                 self.dis_lines = disassembly.serialize()
                 lines_to_process = len(self.dis_lines)
                 
@@ -234,13 +250,15 @@ class PyDAInterface(Frame):
                 self.current_function = ''
                 self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, disassembly.program_info))
 
+                self.status_progress_bar['mode'] = 'determinate'
                 self.status_progress_bar['maximum'] = lines_to_process
                 self.status_progress_bar['value'] = 0
-                self.parent.startProgressMonitor(self.status_progress_bar.step)
+                self.parent.startProgressMonitor(self.progressMonitorCallback)
+ 
+                self.status('Processing lines')
                 for line in self.dis_lines:
                     self.parent.addProgressPoint()
                     self.insertLine(line)
-                self.parent.stopProgressMonitor()
 
     def insertLine(self, line):
         try:

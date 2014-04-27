@@ -7,6 +7,7 @@ def disassemble(binary):
 #except: return False
 
 class ELF:
+    FILETYPE_NAME = 'ELF'
     def __init__(self, binary):
         magic_offset = 0
         if not binary[magic_offset : magic_offset + WORD] == '\x7FELF':

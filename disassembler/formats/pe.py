@@ -131,6 +131,7 @@ class IMAGE_SECTION_HEADER(Structure):
 
 """ This class parses the PE format """
 class PE:
+    FILETYPE_NAME = 'PE'
     def __init__(self, binary):
         self.__binary = bytearray(binary)
 
