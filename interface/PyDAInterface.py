@@ -21,6 +21,7 @@ class RootApplication(Tk):
         self.progress_monitor = False
         self.progress_point_callback = None
         self.total_points = 0
+        self.wait_for_queue = False
         self.pollCallbackQueue()
 
     def startProgressMonitor(self, callback):
@@ -30,29 +31,41 @@ class RootApplication(Tk):
     def stopProgressMonitor(self):
         self.progress_monitor = False
 
-    def addCallback(self, callback, args=None):
-        self.callback_queue.put((callback, args))
+    def addCallback(self, callback, args=None, kwargs=None):
+        self.callback_queue.put((callback, args, kwargs))
 
     def addProgressPoint(self):
         self.addCallback('PROGRESS POINT')
+
+    def addBreak(self):
+        self.addCallback('BREAK')
 
     def pollCallbackQueue(self):
         pollProcessSize = 500
         progress_points = 0
 
         for i in xrange(pollProcessSize):
-            if self.callback_queue.empty():
+            if self.callback_queue.empty() or self.wait_for_queue:
                 break
 
-            callback,args = self.callback_queue.get()
+            callback,args,kwargs = self.callback_queue.get()
             if callback == 'PROGRESS POINT':
                 progress_points += 1
+            elif callback == 'BREAK':
+                break
             elif args:
-                callback(*args)
+                if kwargs:
+                    callback(*args, **kwargs)
+                else:
+                    callback(*args)
             else:
-                callback()
+                if kwargs:
+                    callback(**kwargs)
+                else:
+                    callback()
 
         self.total_points += progress_points
+        self.wait_for_queue = False
 
         if self.progress_monitor:
             self.progress_point_callback(progress_points)
@@ -111,9 +124,10 @@ class PyDAInterface(Frame):
 
         ## Set up the main PyDA Disassembly Window ##
         self.disassembly_frame = Frame(self.right_notebook)
-        self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1)
-        self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1, command=self.disassembly_text_widget.yview)
-        self.disassembly_text_widget.configure(yscrollcommand=self.dis_text_scroller.set)
+        self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1)
+        self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1, 
+                                            yscrollcommand=self.dis_text_scroller.set)
+        self.dis_text_scroller.config(command=self.disassembly_text_widget.yview)
         self.dis_text_scroller.pack(side="right", fill="y")
         self.disassembly_text_widget.pack(side="left", fill="both", expand=True)
         self.right_notebook.add(self.disassembly_frame, text="Disassembled Code")
@@ -176,9 +190,9 @@ class PyDAInterface(Frame):
 
         right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
         self.disassembly_text_context_manager = WidgetClickContextManager(self.disassembly_text_widget, right_click_button, 
-                                                self.text_context_right_click, [('section','darkgreen'),('address','darkorange'),
-                                                ('mnemonic','blue'),('op_str','blue'),('comment','darkgreen')])
-        sys.stdout = StdoutRedirector(self.stdoutMessage)
+                                                self.text_context_right_click, [('section','darkgreen'),
+                                                ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
+                                                #sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -242,23 +256,64 @@ class PyDAInterface(Frame):
                 for function in disassembly.functions:
                     self.parent.addCallback(self.functions_listbox.insert, (END, function.name))
 
-                self.parent.addCallback(self.disassembly_text_widget.delete, (0.0, END))
                 self.dis_lines = disassembly.serialize()
                 lines_to_process = len(self.dis_lines)
                 
                 self.current_section = ''
                 self.current_function = ''
-                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, disassembly.program_info))
+                self.parent.addCallback(self.disassembly_text_widget.delete, (0.0, END))
+                #self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, disassembly.program_info))
 
                 self.status_progress_bar['mode'] = 'determinate'
                 self.status_progress_bar['maximum'] = lines_to_process
                 self.status_progress_bar['value'] = 0
                 self.parent.startProgressMonitor(self.progressMonitorCallback)
+
+                data = disassembly.program_info + '\n'
  
                 self.status('Processing lines')
                 for line in self.dis_lines:
-                    self.parent.addProgressPoint()
-                    self.insertLine(line)
+                    data += '%s: 0x%x - %s  %s\n' % (line[0], line[1], line[2], line[3])
+
+                self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, data))
+                self.parent.addBreak()
+                self.parent.addCallback(self.startTagging)
+                #    self.parent.addProgressPoint()
+                #    self.insertLine(line)
+
+    def startTagging(self):
+        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 
+            'section', self.disassembly_text_context_manager, 'matchStart1', 'matchEnd1', 0, 3))
+        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'\- [a-zA-Z ]+  ',
+            'mnemonic', self.disassembly_text_context_manager, 'matchStart2', 'matchEnd2', 2, 2))
+        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'  [a-zA-Z0-9 ,\-\+\*\[\]]+$', 
+            'op_str', self.disassembly_text_context_manager, 'matchStart3', 'matchEnd3', 2))
+
+    def highlightPattern(self, widget, pattern, tag, widget_context_manager, startMark, endMark, offset=0, endOffset=0):
+        '''Apply the given tag to all text that matches the given pattern
+
+        If 'regexp' is set to True, pattern will be treated as a regular expression
+        '''
+
+        start = widget.index("1.0")
+        end = widget.index("end")
+        widget.mark_set(startMark,start)
+        widget.mark_set(endMark,start)
+        widget.mark_set("searchLimit", end)
+
+        count = IntVar()
+        while True:
+            index = widget.search(pattern, endMark, "searchLimit",
+                                count=count, regexp=True)
+            if index == "": break
+            index = index.split('.')
+            index = index[0] + '.' + str(int(index[1]) + offset)
+            widget.mark_set(startMark, index)
+            widget.mark_set(endMark, "%s+%sc" % (index,count.get() - offset - endOffset))
+            
+            tag, uuid = widget_context_manager.createTags(tag)
+            widget.tag_add(tag, startMark, endMark)
+            widget.tag_add(uuid, startMark, endMark)
 
     def insertLine(self, line):
         try:
