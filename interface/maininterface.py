@@ -192,7 +192,7 @@ class PyDAInterface(Frame):
         self.disassembly_text_context_manager = WidgetClickContextManager(self.disassembly_text_widget, right_click_button, 
                                                 self.text_context_right_click, [('section','darkgreen'),
                                                 ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
-                                                #sys.stdout = StdoutRedirector(self.stdoutMessage)
+        sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -250,8 +250,6 @@ class PyDAInterface(Frame):
             self.status('Disassembling as %s' % self.disassembler.getFileType())
             disassembly = self.disassembler.disassemble()
             
-            self.parent.addCallback(self.status_progress_bar.stop)
-            
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
                     self.parent.addCallback(self.functions_listbox.insert, (END, function.name))
@@ -262,12 +260,6 @@ class PyDAInterface(Frame):
                 self.current_section = ''
                 self.current_function = ''
                 self.parent.addCallback(self.disassembly_text_widget.delete, (0.0, END))
-                #self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, disassembly.program_info))
-
-                self.status_progress_bar['mode'] = 'determinate'
-                self.status_progress_bar['maximum'] = lines_to_process
-                self.status_progress_bar['value'] = 0
-                self.parent.startProgressMonitor(self.progressMonitorCallback)
 
                 data = disassembly.program_info + '\n'
  
@@ -278,18 +270,18 @@ class PyDAInterface(Frame):
                 self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, data))
                 self.parent.addBreak()
                 self.parent.addCallback(self.startTagging)
-                #    self.parent.addProgressPoint()
-                #    self.insertLine(line)
+            
+                self.parent.addCallback(self.status_progress_bar.stop)
 
     def startTagging(self):
         start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 
-            'section', self.disassembly_text_context_manager, 'matchStart1', 'matchEnd1', 0, 3))
+            'section', 'matchStart1', 'matchEnd1', None, 0, 3))
         start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'\- [a-zA-Z ]+  ',
-            'mnemonic', self.disassembly_text_context_manager, 'matchStart2', 'matchEnd2', 2, 2))
+            'mnemonic', 'matchStart2', 'matchEnd2', None, 2, 2))
         start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'  [a-zA-Z0-9 ,\-\+\*\[\]]+$', 
-            'op_str', self.disassembly_text_context_manager, 'matchStart3', 'matchEnd3', 2))
+            'op_str', 'matchStart3', 'matchEnd3', self.disassembly_text_context_manager, 2))
 
-    def highlightPattern(self, widget, pattern, tag, widget_context_manager, startMark, endMark, offset=0, endOffset=0):
+    def highlightPattern(self, widget, pattern, tag, startMark, endMark, widget_context_manager=None, offset=0, endOffset=0):
         '''Apply the given tag to all text that matches the given pattern
 
         If 'regexp' is set to True, pattern will be treated as a regular expression
@@ -311,10 +303,13 @@ class PyDAInterface(Frame):
             widget.mark_set(startMark, index)
             widget.mark_set(endMark, "%s+%sc" % (index,count.get() - offset - endOffset))
             
-            tag, uuid = widget_context_manager.createTags(tag)
-            widget.tag_add(tag, startMark, endMark)
-            widget.tag_add(uuid, startMark, endMark)
-
+            if widget_context_manager:
+                tag, uuid = widget_context_manager.createTags(tag)
+                widget.tag_add(tag, startMark, endMark)
+                widget.tag_add(uuid, startMark, endMark)
+            else:
+                widget.tag_add(tag, startMark, endMark)
+    '''
     def insertLine(self, line):
         try:
             if not line[0] == self.current_section: # Then we are entering a new section
@@ -336,7 +331,7 @@ class PyDAInterface(Frame):
             #self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "", self.parent.addCallback(self.text_context_manager.addComment(self.parent.addCallback(self.text_context_right_click)))
             self.parent.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n"))
         except KeyboardInterrupt:
-            print self.dis_lines.index(line), line
+            print self.dis_lines.index(line), line'''
 
     def share(self):
         self.server.start()
