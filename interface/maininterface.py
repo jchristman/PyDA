@@ -1,6 +1,6 @@
 from Tkinter import PanedWindow, Frame, Label, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT, LEFT
-from ttk import Notebook,Progressbar
-from guielements import MenuBar
+from ttk import Notebook
+from guielements import MenuBar, ToolBar
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
@@ -23,28 +23,20 @@ class PyDAInterface(Frame):
         self.menu_bar = MenuBar(self.app)
         self.menu_bar.addMenu('File')
         self.menu_bar.addMenuItem('File', 'Import', self.importFile)
-        self.menu_bar.addSeparator('File')
+        self.menu_bar.addMenuSeparator('File')
         self.menu_bar.addMenuItem('File', 'Exit', self.onExit)        
 
         # Set up the Tool Bar
-        self.toolbar = Frame()
-        self.import_button = Button(self.toolbar, text="Import", borderwidth=1, command=self.importFile)
-        self.import_button.pack(side="left")
-        self.share_button = Button(self.toolbar, text="Share", borderwidth=1, command=self.share)
-        self.share_button.pack(side="left")
+        self.toolbar = ToolBar(self.app, 'top')
+        self.toolbar.addButton('Import', self.importFile, 'left')
+        self.toolbar.addButton('Share', self.share, 'right')
         #############################
         
-        ## Create the PyDA status bar ##
-        self.status_bar = Frame(borderwidth=2)
-        self.status_progress_bar = Progressbar(self.status_bar, length=200, mode='determinate')
-        self.status_progress_bar['maximum'] = 100
-        self.status_progress_bar['value'] = 0
-        self.status_progress_bar.pack(side='right', padx=3)
-        self.static_status_label = Label(self.status_bar, text='Status:')
-        self.status_label = Label(self.status_bar, text='Ready')
-        self.static_status_label.pack(side='left')
-        self.status_label.pack(side='left', fill='x')
-        #############################
+        # Set up the status bar ##
+        self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
+        self.status_bar.addLabel('Status:', 'left')
+        self.status_label = self.status_bar.addLabel('Ready', 'left')
+        self.progress_bar = self.status_bar.addProgressBar('right', length=200, mode='indeterminate')
 
         self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
         self.main_window = PanedWindow(self.top_level_window, borderwidth=1, relief="sunken", sashwidth=4)
@@ -172,13 +164,8 @@ class PyDAInterface(Frame):
         if not file_name == '':
             binary = open(file_name, 'rb').read()
 
-            self.status_progress_bar['mode'] = 'indeterminate'
-            self.app.addCallback(self.status_progress_bar.start)
-            
-            self.status('Loading %s' % file_name)
-            self.disassembler.load(binary)
-            self.status('Disassembling as %s' % self.disassembler.getFileType())
-            disassembly = self.disassembler.disassemble()
+            self.app.disassembler.load(binary)
+            disassembly = self.app.disassembler.disassemble()
             
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
@@ -193,15 +180,11 @@ class PyDAInterface(Frame):
 
                 data = disassembly.program_info + '\n'
  
-                self.status('Processing lines')
                 for line in self.dis_lines:
                     data += '%s: 0x%x - %s  %s\n' % (line[0], line[1], line[2], line[3])
 
                 self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, data))
-                self.app.addBreak()
                 self.app.addCallback(self.startTagging)
-            
-                self.app.addCallback(self.status_progress_bar.stop)
 
     def startTagging(self):
         start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 

@@ -73,7 +73,7 @@ class RootApplication(Tk):
         as the amount of queue items to process per call.
         '''
         for i in xrange(queue_process_amt):
-            if self.callback_queue.empty() or self.wait_for_queue:
+            if self.callback_queue.empty():
                 break
 
             callback,args,kwargs = self.callback_queue.get()

@@ -1,4 +1,4 @@
-from interface import App
+from interface import app
 from disassembler.Disassembler import Disassembler
 from server.PyDAServer import PyDAServer
 
