@@ -1,6 +1,5 @@
-from Tkinter import PanedWindow, Frame, Label, Text, Entry, Scrollbar, Listbox, Button, IntVar, BOTH, END, INSERT, LEFT
-from ttk import Notebook
-from guielements import MenuBar, ToolBar
+from Tkinter import Frame, IntVar, END
+from guielements import MenuBar, ToolBar, PanedWindow
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
@@ -38,88 +37,81 @@ class PyDAInterface(Frame):
         self.status_label = self.status_bar.addLabel('Ready', 'left')
         self.progress_bar = self.status_bar.addProgressBar('right', length=200, mode='indeterminate')
 
-        self.top_level_window = PanedWindow(borderwidth=1, relief="sunken", sashwidth=4, orient="vertical")
-        self.main_window = PanedWindow(self.top_level_window, borderwidth=1, relief="sunken", sashwidth=4)
+        # Set up the vertical paned window
+        self.tl_v_window = PanedWindow(self.app, 'top', borderwidth=1, 
+                relief="sunken", sashwidth=4, orient="vertical")
 
-        self.right_notebook = Notebook(self.main_window)
-        self.left_notebook = Notebook(self.main_window)
+        # Set up the horizontal paned window and add to the vertical window
+        self.tl_h_window = self.tl_v_window.addElement(
+                PanedWindow(self.tl_v_window, borderwidth=1, 
+                    relief="sunken", sashwidth=4))
 
-        ## Set up the main PyDA Disassembly Window ##
-        self.disassembly_frame = Frame(self.right_notebook)
-        self.dis_text_scroller = Scrollbar(self.disassembly_frame, orient="vertical", borderwidth=1)
-        self.disassembly_text_widget = Text(self.disassembly_frame, background="white", borderwidth=1, highlightthickness=1, 
-                                            yscrollcommand=self.dis_text_scroller.set)
-        self.dis_text_scroller.config(command=self.disassembly_text_widget.yview)
-        self.dis_text_scroller.pack(side="right", fill="y")
-        self.disassembly_text_widget.pack(side="left", fill="both", expand=True)
-        self.right_notebook.add(self.disassembly_frame, text="Disassembled Code")
-        #############################################
+        # Set up the two notebooks
+        self.left_notebook = self.tl_h_window.addNotebook()
+        self.right_notebook = self.tl_h_window.addNotebook()
+        self.bottom_notebook = self.tl_v_window.addNotebook()
 
-        ## Set up the Data Section Frame ##
-        self.data_section_frame = Frame(self.right_notebook)
-        self.data_section_text_widget = Text(self.data_section_frame, background="white", borderwidth=1, highlightthickness=1)
-        self.data_sec_text_scroller = Scrollbar(self.data_section_frame, orient="vertical", borderwidth=1, command=self.data_section_text_widget.yview)
-        self.data_section_text_widget.configure(yscrollcommand=self.data_sec_text_scroller.set)
-        self.data_sec_text_scroller.pack(side="right", fill="y")
-        self.data_section_text_widget.pack(side="left", fill="both", expand=True)
-        self.right_notebook.add(self.data_section_frame, text="Data Sections")
-        #############################################
+        # Set up the functions listbox
+        self.functions_listbox = self.left_notebook.addListboxWithScrollbar(
+                'Functions', background='white', borderwidth=1, 
+                highlightthickness=1, relief='sunken')
 
-        ## Functions Side Bar ##
-        self.functions_frame = Frame(self.left_notebook)
-        self.functions_listbox = Listbox(self.functions_frame, background="white", borderwidth=1, highlightthickness=1)
-        self.functions_scroller = Scrollbar(self.functions_frame, orient="vertical", borderwidth=1, command=self.functions_listbox.yview)
-        self.functions_listbox.configure(yscrollcommand=self.functions_scroller.set)
-        self.functions_scroller.pack(side="right", fill="y")
-        self.functions_listbox.pack(side="left", fill="both", expand=True)
-        self.left_notebook.add(self.functions_frame, text="Functions")
-        ########################
+        # Set up the strings listbox
+        self.strings_listbox = self.left_notebook.addListboxWithScrollbar(
+                'Strings', background='white', borderwidth=1, 
+                highlightthickness=1, relief='sunken')
 
-        ## String Side Bar ##
-        self.strings_frame = Frame(self.left_notebook)
-        self.strings_listbox = Listbox(self.strings_frame, background="white", borderwidth=1, highlightthickness=1)
-        self.strings_scroller = Scrollbar(self.strings_frame, orient="vertical", borderwidth=1, command=self.strings_listbox.yview)
-        self.strings_listbox.configure(yscrollcommand=self.strings_scroller.set)
-        self.strings_scroller.pack(side="right", fill="y")
-        self.strings_listbox.pack(side="left", fill="both", expand=True)
-        self.left_notebook.add(self.strings_frame, text="Strings")
-        #####################
+        # Set up the disassembly textbox
+        self.disassembly_textbox = self.right_notebook.addTextboxWithScrollbar(
+                'Disassembly', background="white", borderwidth=1, 
+                highlightthickness=1, relief='sunken')
 
-        ## Chat Window ##
-        self.chat_frame = Frame(self.top_level_window, borderwidth=1, relief="sunken")
-        self.chat_recv_frame = Frame(self.chat_frame)
-        self.chat_text_widget = Text(self.chat_recv_frame, background="white", borderwidth=1, highlightthickness=1)
-        self.chat_text_scroller = Scrollbar(self.chat_recv_frame, orient="vertical", borderwidth=1, command=self.chat_text_widget.yview)
-        self.chat_text_widget.configure(yscrollcommand=self.chat_text_scroller.set)
-        self.chat_text_scroller.pack(side="right", fill="y")
-        self.chat_text_widget.pack(side="left", fill="both", expand=True)
-        self.chat_send_text = Entry(self.chat_frame, background="white", borderwidth=2, highlightthickness=1)
-        self.chat_send_text.pack(side="bottom", fill="x")
-        self.chat_recv_frame.pack(side="top", fill="both", expand=True)
-        #################
+        # Set up the data section textbox
+        self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
+                'Data Sections', background="white", borderwidth=1, 
+                highlightthickness=1, relief='sunken')
 
-        ## Now pack things in the correct order ##
-        self.main_window.add(self.left_notebook)
-        self.main_window.add(self.right_notebook)
-        self.top_level_window.add(self.main_window)
-        self.top_level_window.add(self.chat_frame)
-        self.toolbar.pack(side="top", fill="x")
-        self.status_bar.pack(side="bottom", fill="x")
-        self.top_level_window.pack(side="top", fill="both", expand=True)
-        ##########################################
+        # Set up the output window
+        debug_frame = self.bottom_notebook.addFrame('Debug')
+        debug_frame_2 = debug_frame.addFrame('bottom', 'x', False, borderwidth=1)
+        debug_frame_1 = debug_frame.addFrame('top', 'both', True, borderwidth=1)
+        self.debug_textbox = debug_frame_1.addTextboxWithScrollbar(
+                background='white', borderwidth=1, highlightthickness=1, 
+                relief='sunken')
+        self.debug_entry = debug_frame_2.addEntryWithLabel(
+                'Command:', 'bottom', 'x', True, background='white', 
+                borderwidth=1, highlightthickness=1, relief='sunken')
 
+        # Set up the chat window
+        chat_frame = self.bottom_notebook.addFrame('Chat')
+        chat_frame_2 = chat_frame.addFrame('bottom', 'x', False, borderwidth=1)
+        chat_frame_1 = chat_frame.addFrame('top', 'both', True, borderwidth=1)
+        self.chat_textbox = chat_frame_1.addTextboxWithScrollbar(
+                background='white', borderwidth=1, highlightthickness=1, 
+                relief='sunken')
+        self.chat_entry = chat_frame_2.addEntryWithLabel(
+                'Send:', 'bottom', 'x', True, background='white', 
+                borderwidth=1, highlightthickness=1, relief='sunken')
+        
+        # Force the mouse to always have focus
         self.tk_focusFollowsMouse()
 
+        # Get the appropriate button number based on system
         right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
-        self.disassembly_text_context_manager = WidgetClickContextManager(self.disassembly_text_widget, right_click_button, 
-                                                self.text_context_right_click, [('section','darkgreen'),
-                                                ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
+
+        # Create a context manager for the disassembly textbo
+        self.disassembly_textbox_context_manager = WidgetClickContextManager(
+                self.disassembly_textbox, right_click_button, 
+                self.text_context_right_click, [('section','darkgreen'),
+                    ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
+
+        # Redirect stdout to the debug window
         sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
-        height = self.app.winfo_screenheight()*3/4
-        width = height * 16 / 9
+        height = self.app.winfo_screenheight() * 5/6
+        width = height * 16/9
         x = (self.app.winfo_screenwidth() - width)/2
         y = (self.app.winfo_screenheight() - height)/2
         self.app.geometry('%dx%d+%d+%d' % (width, height, x, y))
@@ -128,8 +120,7 @@ class PyDAInterface(Frame):
         print 'Right clicked %s' % text_tag
 
     def stdoutMessage(self, message):
-        self.chat_text_widget.insert(INSERT, '%s' % message)
-        self.chat_text_widget.yview_moveto(1)
+        self.debug_textbox.appendData(message)
 
     def contextMenu(self, e):
         print vars(e)
@@ -176,23 +167,25 @@ class PyDAInterface(Frame):
                 
                 self.current_section = ''
                 self.current_function = ''
-                self.app.addCallback(self.disassembly_text_widget.delete, (0.0, END))
 
                 data = disassembly.program_info + '\n'
  
                 for line in self.dis_lines:
                     data += '%s: 0x%x - %s  %s\n' % (line[0], line[1], line[2], line[3])
 
-                self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, data))
+                self.app.addCallback(self.disassembly_textbox.setData, (data,))
                 self.app.addCallback(self.startTagging)
 
     def startTagging(self):
-        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 
-            'section', 'matchStart1', 'matchEnd1', None, 0, 3))
-        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'\- [a-zA-Z ]+  ',
-            'mnemonic', 'matchStart2', 'matchEnd2', None, 2, 2))
-        start_new_thread(self.highlightPattern, (self.disassembly_text_widget, r'  [a-zA-Z0-9 ,\-\+\*\[\]]+$', 
-            'op_str', 'matchStart3', 'matchEnd3', self.disassembly_text_context_manager, 2))
+        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
+            r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 'section', 'matchStart1', 
+            'matchEnd1', None, 0, 3))
+        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
+            r'\- [a-zA-Z ]+  ', 'mnemonic', 'matchStart2', 'matchEnd2', 
+            None, 2, 2))
+        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
+            r'  [a-zA-Z0-9 ,\-\+\*\[\]]+$', 'op_str', 'matchStart3', 
+            'matchEnd3', self.disassembly_textbox_context_manager, 2))
 
     def highlightPattern(self, widget, pattern, tag, startMark, endMark, widget_context_manager=None, offset=0, endOffset=0):
         '''Apply the given tag to all text that matches the given pattern
@@ -227,22 +220,22 @@ class PyDAInterface(Frame):
         try:
             if not line[0] == self.current_section: # Then we are entering a new section
                 self.current_section = line[0]
-                self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n+++++++++++++++++++++++++++++++++\n"))
-                self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "    Section Name: %s\n\n" % line[0]))
+                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n+++++++++++++++++++++++++++++++++\n"))
+                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "    Section Name: %s\n\n" % line[0]))
             if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
                 self.current_function = line[4]
-                self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n=================================\n"))
-                self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "    Function Name: %s\n\n" % line[4].name))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, line[0], self.disassembly_text_context_manager.createTags('section')))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, " - "))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address')))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, ": "))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic')))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, " "))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str')))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, " "))
-            #self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "", self.app.addCallback(self.text_context_manager.addComment(self.app.addCallback(self.text_context_right_click)))
-            self.app.addCallback(self.disassembly_text_widget.insert, (INSERT, "\n"))
+                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n=================================\n"))
+                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "    Function Name: %s\n\n" % line[4].name))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[0], self.disassembly_text_context_manager.createTags('section')))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " - "))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address')))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, ": "))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic')))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " "))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str')))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " "))
+            #self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "", self.app.addCallback(self.text_context_manager.addComment(self.app.addCallback(self.text_context_right_click)))
+            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n"))
         except KeyboardInterrupt:
             print self.dis_lines.index(line), line'''
 

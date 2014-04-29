@@ -8,7 +8,7 @@ class Disassembler:
                 self.dis = format.disassemble(self.binary)
                 break
             except:
-                print "Nope, not",`format`
+                print 'File header did not match %s' % format.FILETYPE_NAME
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 

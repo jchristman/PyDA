@@ -5,10 +5,8 @@ This file contains many classes to make the code in the main interface much more
 It also adds many convenience functions to code to make access easier.
 '''
 
-from Tkinter import Menu, Frame, Button, Label, Text
-from Tkinter import PanedWindow as pw # because I like the term PanedWindow and I want to use it
-from ttk import Notebook as nb # because I like the term Notebook and I want to use it
-from ttk import Progressbar
+from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END
+from ttk import Progressbar, Notebook as nb
 
 class MenuBar(Menu):
     '''
@@ -54,7 +52,7 @@ class MenuBar(Menu):
         '''
         self.menus[parent_label].add_separator()
 
-class ToolBar(Frame):
+class ToolBar(fm):
     '''
     Arguments:
     parent - the Tkinter master
@@ -65,7 +63,7 @@ class ToolBar(Frame):
     A container class that provide convenience functions for a toolbar.
     '''
     def __init__(self, parent, pack_location, **kwargs):
-        Frame.__init__(self, parent, **kwargs)
+        fm.__init__(self, parent, **kwargs)
         self.pack(side=pack_location, fill='x')
         self.elements = {}
 
@@ -80,7 +78,7 @@ class ToolBar(Frame):
         uuid = len(self.elements)
         self.elements[uuid] = element
         self.elements[uuid].pack(side=pack_side)
-        return uuid
+        return self.elements[uuid]
         
     def addButton(self, text, callback, pack_side):
         '''
@@ -143,7 +141,7 @@ class PanedWindow(pw):
         uuid = len(self.elements)
         self.elements[uuid] = element
         self.add(self.elements[uuid])
-        return uuid
+        return self.elements[uuid]
 
     def addPanedWindow(self, **kwargs):
         '''
@@ -156,33 +154,29 @@ class PanedWindow(pw):
         '''
         return self.addElement(PanedWindow(self, **kwargs))
 
-    def addNotebook(self, pack_location, **kwargs):
+    def addNotebook(self, **kwargs):
         '''
         Arguments:
-        pack_location - where to pack the paned window
         kwargs - keyword arguments to be passwed to constructor
 
         Description:
         Adds a notebook to the paned window
         '''
-        return self.addElement(Notebook(self, pack_location, **kwargs))
+        return self.addElement(Notebook(self, **kwargs))
 
 class Notebook(nb):
     '''
     Arguments:
     parent - the Tkinter master widget
-    pack_location - where to pack the notebook
 
     Description:
     A subclass of the ttk notebook
     '''
-    def __init__(self, parent, pack_location=None, **kwargs):
+    def __init__(self, parent, **kwargs):
         nb.__init__(self, parent, **kwargs)
         self.elements = {}
-        if pack_location:
-            self.pack(side=pack_location)
 
-    def addElement(self, element):
+    def addElement(self, element, text):
         '''
         Arguments:
         element - a tkinter widget
@@ -192,39 +186,185 @@ class Notebook(nb):
         '''
         uuid = len(self.elements)
         self.elements[uuid] = element
-        self.add(element)
-        return uuid
+        self.add(element, text=text)
+        return self.elements[uuid]
 
-if __name__ == '__main__':
-    from Tkinter import Tk, Frame
-    def testFunc():
-        print 'Test!'
-        
-    root = Tk()
+    def addFrame(self, text):
+        '''
+        Arguments:
+        text - the label for the frame
 
-    main = Frame(root)
-    main.pack()
+        Description:
+        Add a frame with a label for the notebook
+        '''
+        return self.addElement(Frame(self), text)
 
-    menu = MenuBar(root)
-    menu.addMenu('File')
-    menu.addMenuItem('File', 'Import', testFunc)
-    menu.addMenuSeparator('File')
-    menu.addMenuItem('File', 'Exit', exit)
-    menu.addMenu('Settings')
-    menu.addMenuItem('Settings', 'Edit', testFunc)
+    def addListboxWithScrollbar(self, text, **kwargs):
+        '''
+        Arguments:
+        text - the label for the notebook tab
+        kwargs - keyword arguments for the listbox
 
-    tool_bar = ToolBar(root, 'top')
-    tool_bar.addButton('Test', testFunc, 'left')
-    tool_bar.addButton('Test2', testFunc, 'right')
+        Description:
+        Add a listbox with a label for the notebook
+        '''
+        return self.addFrame(text).addListboxWithScrollbar(**kwargs)
 
-    status_bar = ToolBar(root, 'bottom', borderwidth=2, relief='sunken')
-    status_bar.addLabel('Test3', 'left')
-    bar_uuid = status_bar.addProgressBar('right', length=200, mode='indeterminate')
+    def addTextboxWithScrollbar(self, text, pack_location=None, fill='both', expand='true', **kwargs):
+        '''
+        Arguments:
+        text - the label for the notebook tab
+        kwargs - keyword arguments for the listbox
 
-    tl_window = PanedWindow(root, 'top', borderwidth=1, relief='sunken', sashwidth=4, orient='vertical')
-    tl_h_window = PanedWindow(tl_window, None, borderwidth=1, relief='sunken', sashwidth=4)
-    #tl_h_window.addNotebook(
+        Description:
+        Add a listbox with a label for the notebook
+        '''
+        return self.addFrame(text).addTextboxWithScrollbar(**kwargs)
 
-    root.geometry('%dx%d+%d+%d' % (300, 300, 100, 100))
+class Frame(fm):
+    def __init__(self, parent, pack_location=None, fill='both', expand=True, **kwargs):
+        fm.__init__(self, parent, **kwargs)
+        self.elements = {}
+        if pack_location:
+            self.pack(side=pack_location, fill=fill, expand=expand)
 
-    root.mainloop()
+    def addElement(self, element, pack_side, fill, expand):
+        '''
+        Arguments:
+        element - a tkinter widget
+
+        Description:
+        Add the element to the Frame
+        '''
+        uuid = len(self.elements)
+        self.elements[uuid] = element
+        self.elements[uuid].pack(side=pack_side, fill=fill, expand=expand)
+        return self.elements[uuid]
+
+    def addFrame(self, pack_side, fill, expand, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to left.
+        fill - which directions to fill to. defaults to both.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the Textbox
+
+        Description:
+        Add a Textbox to the Frame
+        '''
+        return self.addElement(Frame(self, **kwargs), pack_side, fill, expand)
+
+    def addTextbox(self, pack_side='left', fill='both', expand=True, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to left.
+        fill - which directions to fill to. defaults to both.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the Textbox
+
+        Description:
+        Add a Textbox to the Frame
+        '''
+        return self.addElement(Textbox(self, **kwargs), pack_side, fill, expand)
+
+    def addListbox(self, pack_side='left', fill='both', expand=True, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to left.
+        fill - which directions to fill to. defaults to both.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the listbox 
+
+        Description:
+        Add a Listbox to the Frame
+        '''
+        return self.addElement(Listbox(self, **kwargs), pack_side, fill, expand)
+
+    def addScrollbar(self, pack_side='right', fill='y', expand=False, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to right.
+        fill - which directions to fill to. defaults to y.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the Scrollbar
+
+        Description:
+        Add a Scrollbar to the Frame
+        '''
+        return self.addElement(Scrollbar(self, **kwargs), pack_side, fill, expand)
+
+    def addEntry(self, pack_side='bottom', fill='x', expand=True, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to bottom.
+        fill - which directions to fill to. defaults to x.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the Entry
+
+        Description:
+        Add a Entry to the Frame
+        '''
+        return self.addElement(Entry(self, **kwargs), pack_side, fill, expand)
+
+    def addLabel(self, text, pack_side='left'):
+        '''
+        Arguments:
+        text - the string to put in the label
+        pack_side - side to pack into the frame. Defaults to left.
+        kwargs - for the construction of the Scrollbar
+
+        Description:
+        Add a Label to the Frame
+        '''
+        return self.addElement(Label(self, text=text), pack_side, 'none', False)
+
+    def addEntryWithLabel(self, text, pack_side, fill, expand, **kwargs):
+        '''
+        Arguments:
+        text - the string to put in the label
+        pack_side - side to pack into the frame. Defaults to left.
+
+        Description:
+        Add a Label to the Frame
+        '''
+        frame = self.addFrame(pack_side, fill, expand)
+        label = frame.addLabel(text)
+        entry = frame.addEntry('right', **kwargs)
+        return entry
+
+    def addListboxWithScrollbar(self, pack_side='left', fill='both', expand=True, **kwargs):
+        '''
+        Arguments:
+        kwargs - for the construction of the listbox
+
+        Description:
+        Add a Listbox with scrollbar to the Frame
+        '''
+        listbox = self.addListbox(**kwargs)
+        scroller = self.addScrollbar(orient='vertical', borderwidth=1, command=listbox.yview)
+        listbox.configure(yscrollcommand=scroller.set)
+        return listbox
+    
+    def addTextboxWithScrollbar(self, pack_side='left', fill='both', expand=True, **kwargs):
+        '''
+        Arguments:
+        kwargs - for the construction of the textbox
+
+        Description:
+        Add a textbox with scrollbar to the Frame
+        '''
+        textbox = self.addTextbox(**kwargs)
+        scroller = self.addScrollbar(orient='vertical', borderwidth=1, command=textbox.yview)
+        textbox.configure(yscrollcommand=scroller.set)
+        return textbox
+
+class Textbox(Text):
+    def __init__(self, parent, **kwargs):
+        Text.__init__(self, parent, **kwargs)
+
+    def setData(self, data):
+        self.delete(0.0, END) # Get rid of current data
+        self.insert(INSERT, data)
+
+    def appendData(self, data):
+        self.insert(INSERT, data)

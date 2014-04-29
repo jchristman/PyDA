@@ -112,7 +112,7 @@ class CommonProgramDisassemblyFormat:
             current_func_index = 0
             func_started = False
 
-            print 'Parsing new section.\n    Section Name: %s\n    Number of functions in section: %i' % (section.name, len(section.functions))
+            #print 'Parsing new section.\n    Section Name: %s\n    Number of functions in section: %i' % (section.name, len(section.functions))
 
             for inst in section.instructions:
                 try:
