@@ -7,6 +7,7 @@ It also adds many convenience functions to code to make access easier.
 
 from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END
 from ttk import Progressbar, Notebook as nb
+from settings import LINES_BUFFER_SIZE, START
 
 class MenuBar(Menu):
     '''
@@ -214,12 +215,23 @@ class Notebook(nb):
         '''
         Arguments:
         text - the label for the notebook tab
-        kwargs - keyword arguments for the listbox
+        kwargs - keyword arguments for the textbox
 
         Description:
-        Add a listbox with a label for the notebook
+        Add a textbox with a label for the notebook
         '''
         return self.addFrame(text).addTextboxWithScrollbar(**kwargs)
+
+    def addTextboxWithAutoScrollbar(self, text, pack_location=None, fill='both', expand='true', **kwargs):
+        '''
+        Arguments:
+        text - the label for the notebook tab
+        kwargs - keyword arguments for the textbox
+
+        Description:
+        Add a textbox with an automatic scrollbar with a label for the notebook
+        '''
+        return self.addFrame(text).addTextboxWithAutoScrollbar(**kwargs)
 
 class Frame(fm):
     def __init__(self, parent, pack_location=None, fill='both', expand=True, **kwargs):
@@ -293,6 +305,19 @@ class Frame(fm):
         '''
         return self.addElement(Scrollbar(self, **kwargs), pack_side, fill, expand)
 
+    def addAutoScrollbar(self, pack_side='right', fill='y', expand=False, **kwargs):
+        '''
+        Arguments:
+        pack_side - side to pack into the frame. Defaults to right.
+        fill - which directions to fill to. defaults to y.
+        expand - whether to expand the element. defaults to True.
+        kwargs - for the construction of the Scrollbar
+
+        Description:
+        Add a Scrollbar to the Frame
+        '''
+        return self.addElement(AutoScrollbar(self, **kwargs), pack_side, fill, expand)
+
     def addEntry(self, pack_side='bottom', fill='x', expand=True, **kwargs):
         '''
         Arguments:
@@ -358,13 +383,111 @@ class Frame(fm):
         textbox.configure(yscrollcommand=scroller.set)
         return textbox
 
+    def addTextboxWithAutoScrollbar(self, pack_side='left', fill='both', expand=True, **kwargs):
+        '''
+        Arguments:
+        kwargs - for the construction of the textbox
+
+        Description:
+        Add a textbox with scrollbar to the Frame
+        '''
+        textbox = self.addTextbox(**kwargs)
+        scroller = self.addAutoScrollbar(textbox=textbox, orient='vertical', borderwidth=1, command=textbox.changeView)
+        textbox.configure(yscrollcommand=textbox.setyscroll)
+        textbox.scroller = scroller
+        return textbox
+
 class Textbox(Text):
     def __init__(self, parent, **kwargs):
         Text.__init__(self, parent, **kwargs)
+        self.scroller = None
+        self.reset()
+
+    def reset(self):
+        self.data = [] # It's an array of lines
+        self.current_data_offset = 0
+        self.prev_start = 0.0
+        self.internal_change = False
 
     def setData(self, data):
-        self.delete(0.0, END) # Get rid of current data
-        self.insert(INSERT, data)
+        self.data = data.split('\n')
+        self.redraw()
 
     def appendData(self, data):
-        self.insert(INSERT, data)
+        self.data.append(data)
+        self.redraw()
+
+    def clear(self):
+        self.delete(0.0, END)
+
+    def redraw(self):
+        num_lines = self.cget('height')
+        end_index = self.current_data_offset + num_lines
+        if end_index > len(self.data):
+            end_index = len(self.data)
+            self.current_data_offset = end_index - num_lines
+            if self.current_data_offset < 0:
+                self.current_data_offset = 0
+        start_index = self.current_data_offset
+
+        self.clear()
+        self.drawLines()
+
+    def drawLines(self):
+        for i in xrange(LINES_BUFFER_SIZE):
+            self.insertBottomLine(self.current_data_offset + i)
+
+    def insertTopLine(self, line_index):
+        if 0 <= line_index < len(self.data):
+            self.insert(START, self.data[line_index] + '\n')
+
+    def insertBottomLine(self, line_index):
+        if 0 <= line_index < len(self.data):
+            print 'Inserting %s' % self.data[line_index]
+            self.insert(END, self.data[line_index] + '\n')
+
+    def undrawBottomLine(self):
+        self.delete(END - 1, END)
+
+    def undrawTopLine(self):
+        self.delete(START, START + 1)
+
+    def setyscroll(self, *args):
+        print args, self.prev_start, self.current_data_offset, self.internal_change
+        if len(self.data) > 0:
+            if not self.internal_change:
+                self.prev_start = float(args[0])
+
+                line_height = 1.0 / len(self.data)
+                start = self.current_data_offset * line_height
+                end = start + line_height * self.cget('height')
+
+                self.scroller.set(start, end)
+                self.internal_change = True
+            else:
+                self.internal_change = False
+        else:
+            self.scroller.set(*args)
+
+    def changeView(self, *args):
+        print args
+        self.yview(*args)
+
+class AutoScrollbar(Scrollbar):
+    def __init__(self, parent, textbox=None, **kwargs):
+        Scrollbar.__init__(self, parent, **kwargs)
+
+if __name__ == '__main__':
+    def test(textbox):
+        import time
+        time.sleep(3)
+        data = '\n'.join('bob%i' % i for i in xrange(150))
+        textbox.setData(data)
+
+    import Tkinter, thread
+    root = Tkinter.Tk()
+    app = Frame(root)
+    textbox = app.addTextboxWithAutoScrollbar()
+    app.pack()
+    thread.start_new_thread(test, (textbox,))
+    root.mainloop()
