@@ -72,6 +72,8 @@ class RootApplication(Tk):
         Change settings inside of settings.py to change the frequency of calls to this function as well
         as the amount of queue items to process per call.
         '''
+        if self.callback_queue.qsize():
+            print self.callback_queue.qsize(), 'items in queue!'
         for i in xrange(QUEUE_PROCESS_AMT):
             if self.callback_queue.empty():
                 break
@@ -87,7 +89,7 @@ class RootApplication(Tk):
                     callback(**kwargs)
                 else:
                     callback()
-                    
+        
         self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue)
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
 from thread import start_new_thread
-from settings import PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL
+from settings import PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL, REDIR_STDOUT
 import sys
 import tkFileDialog, tkMessageBox
 
@@ -103,12 +103,16 @@ class PyDAInterface(Frame):
         # Create a context manager for the disassembly textbo
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
                 self.disassembly_textbox, right_click_button, 
-                self.text_context_right_click, [('section','darkgreen'),
-                    ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
+                self.text_context_right_click, self.app.addCallback, 
+                [(PYDA_SECTION, 'darkgreen'), (PYDA_MNEMONIC, 'blue'), 
+                    (PYDA_OP_STR, 'darkblue'), (PYDA_COMMENT, 'darkgreen'), 
+                    (PYDA_GENERIC, 'black'), (PYDA_ENDL, 'black')])
+
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
         # Redirect stdout to the debug window
-        sys.stdout = StdoutRedirector(self.stdoutMessage)
+        if REDIR_STDOUT:
+            sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -170,7 +174,7 @@ class PyDAInterface(Frame):
                 self.current_section = ''
                 self.current_function = ''
 
-                data = disassembly.program_info + PYDA_ENDL
+                data = disassembly.program_info + PYDA_ENDL + '\n'
  
                 for line in self.dis_lines:
                     data += '%s%s: ' % (PYDA_SECTION, line[0])
@@ -179,8 +183,9 @@ class PyDAInterface(Frame):
                     data += '%s%s  ' % (PYDA_MNEMONIC, line[2])
                     data += '%s%s  ' % (PYDA_OP_STR, line[3])
                     data += '%s%s' % (PYDA_COMMENT, '')
-                    data += PYDA_ENDL                    
+                    data += '%s\n' % PYDA_ENDL
 
+                print 'Setting textbox data'
                 self.app.addCallback(self.disassembly_textbox.setData, (data,))
                 #self.app.addCallback(self.startTagging)
 
