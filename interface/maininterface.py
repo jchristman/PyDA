@@ -106,7 +106,7 @@ class PyDAInterface(Frame):
                     ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
 
         # Redirect stdout to the debug window
-        sys.stdout = StdoutRedirector(self.stdoutMessage)
+        #sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
@@ -174,7 +174,7 @@ class PyDAInterface(Frame):
                     data += '%s: 0x%x - %s  %s\n' % (line[0], line[1], line[2], line[3])
 
                 self.app.addCallback(self.disassembly_textbox.setData, (data,))
-                self.app.addCallback(self.startTagging)
+                #self.app.addCallback(self.startTagging)
 
     def startTagging(self):
         start_new_thread(self.highlightPattern, (self.disassembly_textbox, 

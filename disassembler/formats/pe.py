@@ -7,6 +7,7 @@ def disassemble(binary):
     return PE(binary)
 #except: return False
 
+FILETYPE_NAME = 'PE'
 
 # The parsing logic below is blatantly ripped off of ROPGadget v5.0:
 # PE class =========================================================================================

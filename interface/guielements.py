@@ -7,7 +7,7 @@ It also adds many convenience functions to code to make access easier.
 
 from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END
 from ttk import Progressbar, Notebook as nb
-from settings import LINES_BUFFER_SIZE, START
+from settings import LINES_BUFFER_SIZE, LINES_BUFFER_LOW_CUTOFF, LINES_BUFFER_HIGH_CUTOFF, START
 
 class MenuBar(Menu):
     '''
@@ -393,7 +393,7 @@ class Frame(fm):
         '''
         textbox = self.addTextbox(**kwargs)
         scroller = self.addAutoScrollbar(textbox=textbox, orient='vertical', borderwidth=1, command=textbox.changeView)
-        textbox.configure(yscrollcommand=textbox.setyscroll)
+        textbox.configure(yscrollcommand=textbox.datayscroll)
         textbox.scroller = scroller
         return textbox
 
@@ -407,10 +407,12 @@ class Textbox(Text):
         self.data = [] # It's an array of lines
         self.current_data_offset = 0
         self.prev_start = 0.0
-        self.internal_change = False
+        self.append_lines = 0
+        self.prepend_lines = 0
+        self.neg_to_pos = False
 
     def setData(self, data):
-        self.data = data.split('\n')
+        self.data = [x + '\n' for x in data.split('\n') if len(x) > 0]
         self.redraw()
 
     def appendData(self, data):
@@ -439,33 +441,54 @@ class Textbox(Text):
 
     def insertTopLine(self, line_index):
         if 0 <= line_index < len(self.data):
-            self.insert(START, self.data[line_index] + '\n')
+            self.insert(START, self.data[line_index])
 
     def insertBottomLine(self, line_index):
         if 0 <= line_index < len(self.data):
-            print 'Inserting %s' % self.data[line_index]
-            self.insert(END, self.data[line_index] + '\n')
+            self.insert('end', self.data[line_index])
 
-    def undrawBottomLine(self):
-        self.delete(END - 1, END)
+    def deleteBottomLine(self):
+        lines_to_delete = int(float(self.index('end')) - LINES_BUFFER_SIZE) + 2
+        self.delete('end -%i line linestart' % lines_to_delete, 'end lineend')
 
-    def undrawTopLine(self):
-        self.delete(START, START + 1)
+    def deleteTopLine(self):
+        lines_to_delete = int(float(self.index('end')) - LINES_BUFFER_SIZE)
+        self.delete(START + ' linestart', START + ' linestart +%i line' % lines_to_delete)
 
-    def setyscroll(self, *args):
-        print args, self.prev_start, self.current_data_offset, self.internal_change
+    def datayscroll(self, *args):
+        start = float(args[0])
         if len(self.data) > 0:
-            if not self.internal_change:
-                self.prev_start = float(args[0])
+            if start > LINES_BUFFER_HIGH_CUTOFF and self.prev_start <= LINES_BUFFER_HIGH_CUTOFF: # Then we add lines to end and delete lines from front
+                self.append_lines = 1
+            elif start <= LINES_BUFFER_HIGH_CUTOFF and self.prev_start > LINES_BUFFER_HIGH_CUTOFF: # Then we are back in the neutral zone
+                self.append_lines = 0
+            elif start < LINES_BUFFER_LOW_CUTOFF and self.prev_start >= LINES_BUFFER_LOW_CUTOFF: # Then we add lines to front and delete lines from end
+                self.append_lines = -1
+                self.neg_to_pos = True
+            elif start >= LINES_BUFFER_LOW_CUTOFF and self.prev_start < LINES_BUFFER_LOW_CUTOFF: # Then we are back in the neutral zone
+                self.append_lines = 0                
+            self.prev_start = float(args[0])
 
-                line_height = 1.0 / len(self.data)
-                start = self.current_data_offset * line_height
-                end = start + line_height * self.cget('height')
+            if self.append_lines == 1:
+                if self.current_data_offset + LINES_BUFFER_SIZE < len(self.data):
+                    if self.neg_to_pos: # for some reason, when we are deleting bottom lines, the trailing \n gets lost
+                        self.insert('end', '\n')
+                        self.neg_to_pos = False
+                    self.insertBottomLine(self.current_data_offset + LINES_BUFFER_SIZE)
+                    self.deleteTopLine()
+                    self.current_data_offset += 1
+            elif self.append_lines == -1:
+                if self.current_data_offset > 0:
+                    self.deleteBottomLine()
+                    self.insertTopLine(self.current_data_offset - 1)
+                    self.current_data_offset -= 1
 
-                self.scroller.set(start, end)
-                self.internal_change = True
-            else:
-                self.internal_change = False
+            line_height = 1.0 / len(self.data)
+            display_lines = line_height * self.cget('height')
+            start = self.prev_start * LINES_BUFFER_SIZE / len(self.data) + self.current_data_offset * line_height
+            end = start + display_lines
+            
+            self.scroller.set(start, end)
         else:
             self.scroller.set(*args)
 
@@ -476,18 +499,13 @@ class Textbox(Text):
 class AutoScrollbar(Scrollbar):
     def __init__(self, parent, textbox=None, **kwargs):
         Scrollbar.__init__(self, parent, **kwargs)
-
+    
 if __name__ == '__main__':
-    def test(textbox):
-        import time
-        time.sleep(3)
-        data = '\n'.join('bob%i' % i for i in xrange(150))
-        textbox.setData(data)
-
-    import Tkinter, thread
+    import Tkinter
     root = Tkinter.Tk()
     app = Frame(root)
     textbox = app.addTextboxWithAutoScrollbar()
+    data = '\n'.join('bob%i' % i for i in xrange(150))
+    textbox.setData(data)
     app.pack()
-    thread.start_new_thread(test, (textbox,))
     root.mainloop()

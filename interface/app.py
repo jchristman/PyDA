@@ -9,7 +9,7 @@ prevent the GUI from blocking.
 
 from Tkinter import Tk
 from maininterface import PyDAInterface
-from settings import queue_process_amt, queue_process_delay
+from settings import QUEUE_PROCESS_AMT,QUEUE_PROCESS_DELAY
 from Queue import Queue
 
 def build_and_run(disassembler, server):
@@ -72,7 +72,7 @@ class RootApplication(Tk):
         Change settings inside of settings.py to change the frequency of calls to this function as well
         as the amount of queue items to process per call.
         '''
-        for i in xrange(queue_process_amt):
+        for i in xrange(QUEUE_PROCESS_AMT):
             if self.callback_queue.empty():
                 break
 
@@ -88,7 +88,7 @@ class RootApplication(Tk):
                 else:
                     callback()
                     
-        self.after(queue_process_delay, self.pollCallbackQueue)
+        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue)
 
 if __name__ == '__main__':
     build_and_run()

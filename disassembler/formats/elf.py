@@ -6,6 +6,8 @@ def disassemble(binary):
     return ELF(binary)
 #except: return False
 
+FILETYPE_NAME = 'ELF'
+
 class ELF:
     FILETYPE_NAME = 'ELF'
     def __init__(self, binary):
