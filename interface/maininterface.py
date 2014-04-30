@@ -62,12 +62,12 @@ class PyDAInterface(Frame):
                 highlightthickness=1, relief='sunken')
 
         # Set up the disassembly textbox
-        self.disassembly_textbox = self.right_notebook.addTextboxWithAutoScrollbar(
+        self.disassembly_textbox = self.right_notebook.addTextboxWithScrollbar(
                 'Disassembly', background="white", borderwidth=1, 
                 highlightthickness=1, relief='sunken')
 
         # Set up the data section textbox
-        self.data_sections_textbox = self.right_notebook.addTextboxWithAutoScrollbar(
+        self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
                 'Data Sections', background="white", borderwidth=1, 
                 highlightthickness=1, relief='sunken')
 

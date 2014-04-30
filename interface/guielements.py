@@ -7,7 +7,7 @@ It also adds many convenience functions to code to make access easier.
 
 from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END
 from ttk import Progressbar, Notebook as nb
-from settings import LINES_BUFFER_SIZE, LINES_BUFFER_LOW_CUTOFF, LINES_BUFFER_HIGH_CUTOFF, START
+from settings import LINES_BUFFER_SIZE, LINES_BUFFER_LOW_CUTOFF, LINES_BUFFER_HIGH_CUTOFF, START, MOVETO_YVIEW
 
 class MenuBar(Menu):
     '''
@@ -222,17 +222,6 @@ class Notebook(nb):
         '''
         return self.addFrame(text).addTextboxWithScrollbar(**kwargs)
 
-    def addTextboxWithAutoScrollbar(self, text, pack_location=None, fill='both', expand='true', **kwargs):
-        '''
-        Arguments:
-        text - the label for the notebook tab
-        kwargs - keyword arguments for the textbox
-
-        Description:
-        Add a textbox with an automatic scrollbar with a label for the notebook
-        '''
-        return self.addFrame(text).addTextboxWithAutoScrollbar(**kwargs)
-
 class Frame(fm):
     def __init__(self, parent, pack_location=None, fill='both', expand=True, **kwargs):
         fm.__init__(self, parent, **kwargs)
@@ -305,19 +294,6 @@ class Frame(fm):
         '''
         return self.addElement(Scrollbar(self, **kwargs), pack_side, fill, expand)
 
-    def addAutoScrollbar(self, pack_side='right', fill='y', expand=False, **kwargs):
-        '''
-        Arguments:
-        pack_side - side to pack into the frame. Defaults to right.
-        fill - which directions to fill to. defaults to y.
-        expand - whether to expand the element. defaults to True.
-        kwargs - for the construction of the Scrollbar
-
-        Description:
-        Add a Scrollbar to the Frame
-        '''
-        return self.addElement(AutoScrollbar(self, **kwargs), pack_side, fill, expand)
-
     def addEntry(self, pack_side='bottom', fill='x', expand=True, **kwargs):
         '''
         Arguments:
@@ -379,20 +355,7 @@ class Frame(fm):
         Add a textbox with scrollbar to the Frame
         '''
         textbox = self.addTextbox(**kwargs)
-        scroller = self.addScrollbar(orient='vertical', borderwidth=1, command=textbox.yview)
-        textbox.configure(yscrollcommand=scroller.set)
-        return textbox
-
-    def addTextboxWithAutoScrollbar(self, pack_side='left', fill='both', expand=True, **kwargs):
-        '''
-        Arguments:
-        kwargs - for the construction of the textbox
-
-        Description:
-        Add a textbox with scrollbar to the Frame
-        '''
-        textbox = self.addTextbox(**kwargs)
-        scroller = self.addAutoScrollbar(textbox=textbox, orient='vertical', borderwidth=1, command=textbox.changeView)
+        scroller = self.addScrollbar(orient='vertical', borderwidth=1, command=textbox.changeView)
         textbox.configure(yscrollcommand=textbox.datayscroll)
         textbox.scroller = scroller
         return textbox
@@ -412,6 +375,7 @@ class Textbox(Text):
         self.neg_to_pos = False
 
     def setData(self, data):
+        self.reset()
         self.data = [x + '\n' for x in data.split('\n') if len(x) > 0]
         self.redraw()
 
@@ -423,7 +387,7 @@ class Textbox(Text):
         self.delete(0.0, END)
 
     def redraw(self):
-        num_lines = self.cget('height')
+        num_lines = LINES_BUFFER_SIZE
         end_index = self.current_data_offset + num_lines
         if end_index > len(self.data):
             end_index = len(self.data)
@@ -456,7 +420,13 @@ class Textbox(Text):
         self.delete(START + ' linestart', START + ' linestart +%i line' % lines_to_delete)
 
     def datayscroll(self, *args):
+        print args, self.prev_start
+        if args[0] == 'BYPASS':
+            self.prev_start = float(args[1])
+            self.scroller.set(args[1], args[2])
+            return
         start = float(args[0])
+
         if len(self.data) > 0:
             if start > LINES_BUFFER_HIGH_CUTOFF and self.prev_start <= LINES_BUFFER_HIGH_CUTOFF: # Then we add lines to end and delete lines from front
                 self.append_lines = 1
@@ -470,35 +440,60 @@ class Textbox(Text):
             self.prev_start = float(args[0])
 
             if self.append_lines == 1:
+                lines_to_update = abs(int((self.prev_start - LINES_BUFFER_HIGH_CUTOFF)/(1.0/LINES_BUFFER_SIZE)))
                 if self.current_data_offset + LINES_BUFFER_SIZE < len(self.data):
                     if self.neg_to_pos: # for some reason, when we are deleting bottom lines, the trailing \n gets lost
                         self.insert('end', '\n')
                         self.neg_to_pos = False
-                    self.insertBottomLine(self.current_data_offset + LINES_BUFFER_SIZE)
-                    self.deleteTopLine()
-                    self.current_data_offset += 1
+                    for i in xrange(lines_to_update):
+                        self.insertBottomLine(self.current_data_offset + LINES_BUFFER_SIZE + i)
+                        self.deleteTopLine()
+                self.current_data_offset += lines_to_update
             elif self.append_lines == -1:
+                lines_to_update = abs(int((self.prev_start - LINES_BUFFER_LOW_CUTOFF)/(1.0/LINES_BUFFER_SIZE)))
                 if self.current_data_offset > 0:
-                    self.deleteBottomLine()
-                    self.insertTopLine(self.current_data_offset - 1)
-                    self.current_data_offset -= 1
+                    for i in xrange(lines_to_update):
+                        self.deleteBottomLine()
+                        self.insertTopLine(self.current_data_offset - 1 - i)
+                self.current_data_offset -= lines_to_update
 
-            line_height = 1.0 / len(self.data)
-            display_lines = line_height * self.cget('height')
-            start = self.prev_start * LINES_BUFFER_SIZE / len(self.data) + self.current_data_offset * line_height
-            end = start + display_lines
-            
-            self.scroller.set(start, end)
+            start,end = self._calcscroller()
+            self.scroller.set(start,end)
         else:
             self.scroller.set(*args)
 
-    def changeView(self, *args):
-        print args
-        self.yview(*args)
+    def _calcscroller(self):
+        line_height = 1.0 / len(self.data)
+        display_lines = line_height * self.cget('height')
+        start = self.prev_start * LINES_BUFFER_SIZE / len(self.data) + self.current_data_offset * line_height
+        end = start + display_lines
+        return start,end
 
-class AutoScrollbar(Scrollbar):
-    def __init__(self, parent, textbox=None, **kwargs):
-        Scrollbar.__init__(self, parent, **kwargs)
+    def changeView(self, *args):
+        if args[0] == 'moveto':
+            new_start = float(args[1])
+            self.append_lines = 0 # Stop inserting or deleting lines
+            self.current_data_offset = int(new_start/(1.0 / len(self.data))) # divide the start location by the height of the line and truncate to an int
+            self.redraw() # insert all data
+            
+            # Now to a calculation for the position of the cursor
+            start,end = self._calcscroller()
+            self.datayscroll('BYPASS', start, end)
+            
+            buffer_start = float(self.current_data_offset) / LINES_BUFFER_SIZE
+            buffer_end = len(self.data) - (new_start / (1.0 / len(self.data))) # number of lines from current position to end of data
+            view_start = str(MOVETO_YVIEW)
+            # If we are too close to the top or bottom, don't autoset to the middle of the buffer.
+            # Instead, set to the correct spot based on the dataset.
+            if buffer_start < MOVETO_YVIEW:
+                view_start = str(buffer_start)
+            elif buffer_end < (1 - MOVETO_YVIEW) * LINES_BUFFER_SIZE:
+                view_start = float(LINES_BUFFER_SIZE - buffer_end) / LINES_BUFFER_SIZE
+            self.yview_moveto(view_start)
+        elif args[0] == 'scroll':
+            num_pages = int(args[1])
+        else:
+            print args
     
 if __name__ == '__main__':
     import Tkinter
