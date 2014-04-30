@@ -5,6 +5,7 @@ from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
 from thread import start_new_thread
+from settings import PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL
 import sys
 import tkFileDialog, tkMessageBox
 
@@ -104,6 +105,7 @@ class PyDAInterface(Frame):
                 self.disassembly_textbox, right_click_button, 
                 self.text_context_right_click, [('section','darkgreen'),
                     ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
+        self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
         # Redirect stdout to the debug window
         sys.stdout = StdoutRedirector(self.stdoutMessage)
@@ -168,10 +170,16 @@ class PyDAInterface(Frame):
                 self.current_section = ''
                 self.current_function = ''
 
-                data = disassembly.program_info + '\n'
+                data = disassembly.program_info + PYDA_ENDL
  
                 for line in self.dis_lines:
-                    data += '%s: 0x%x - %s  %s\n' % (line[0], line[1], line[2], line[3])
+                    data += '%s%s: ' % (PYDA_SECTION, line[0])
+                    data += '%s0x%x' % (PYDA_ADDRESS, line[1])
+                    data += '%s - ' % (PYDA_GENERIC)
+                    data += '%s%s  ' % (PYDA_MNEMONIC, line[2])
+                    data += '%s%s  ' % (PYDA_OP_STR, line[3])
+                    data += '%s%s' % (PYDA_COMMENT, '')
+                    data += PYDA_ENDL                    
 
                 self.app.addCallback(self.disassembly_textbox.setData, (data,))
                 #self.app.addCallback(self.startTagging)

@@ -19,6 +19,9 @@ class WidgetClickContextManager:
         except:
             return '',''
 
+    def insert(self, widget, index, data):
+        pass
+
     def addTagToBindings(self, tag, callback, foreground, click_string):
         self.widget.tag_config(tag, foreground=foreground)
         self.widget.tag_bind(tag, click_string, callback)

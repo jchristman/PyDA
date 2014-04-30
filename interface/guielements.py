@@ -361,9 +361,10 @@ class Frame(fm):
         return textbox
 
 class Textbox(Text):
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, context_manager=None, **kwargs):
         Text.__init__(self, parent, **kwargs)
         self.scroller = None
+        self.context_manager = context_manager
         self.reset()
 
     def reset(self):
@@ -406,11 +407,17 @@ class Textbox(Text):
 
     def insertTopLine(self, line_index):
         if 0 <= line_index < len(self.data):
-            self.insert(START, self.data[line_index])
+            if self.context_manager:
+                self.context_manager.insert(self, START, self.data[line_index])
+            else:
+                self.insert(START, self.data[line_index])
 
     def insertBottomLine(self, line_index):
         if 0 <= line_index < len(self.data):
-            self.insert('end', self.data[line_index])
+            if self.context_manager:
+                self.context_manager.insert(self, 'end', self.data[line_index])
+            else:
+                self.insert('end', self.data[line_index])
 
     def deleteBottomLine(self):
         lines_to_delete = int(float(self.index('end')) - LINES_BUFFER_SIZE) + 2
