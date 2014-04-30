@@ -106,7 +106,7 @@ class PyDAInterface(Frame):
                     ('mnemonic','blue'),('op_str','darkblue'),('comment','darkgreen')])
 
         # Redirect stdout to the debug window
-        #sys.stdout = StdoutRedirector(self.stdoutMessage)
+        sys.stdout = StdoutRedirector(self.stdoutMessage)
         print "Stdout is being redirected to here"
 
     def centerWindow(self):
