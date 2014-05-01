@@ -3,8 +3,8 @@ from helpers import *
 from ctypes import *
 from struct import unpack
 
-def disassemble(binary):
-    return PE(binary)
+def disassemble(binary, filename=None):
+    return PE(binary, filename=filename)
 #except: return False
 
 FILETYPE_NAME = 'PE'
@@ -132,8 +132,9 @@ class IMAGE_SECTION_HEADER(Structure):
 """ This class parses the PE format """
 class PE:
     FILETYPE_NAME = 'PE'
-    def __init__(self, binary):
+    def __init__(self, binary, filename=None):
         self.__binary = bytearray(binary)
+        self.__filename = filename
 
         self.__PEOffset              = 0x00000000
         self.__IMAGE_FILE_HEADER     = None
@@ -260,6 +261,8 @@ class PE:
             "Architecture Mode": "32-bit" if self.getArchMode() == CS_MODE_32 else "64-bit",
             "Entry Point": "0x{:x}".format(self.getEntryPoint()),
         }
+        if self.__filename != None:
+            fields["Filename"] = self.__filename
         
         max_length = max(len(x) + len(fields[x]) for x in fields) + 2
 

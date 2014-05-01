@@ -162,7 +162,7 @@ class PyDAInterface(Frame):
             self.debug('Reading %s' % file_name)
             binary = open(file_name, 'rb').read()
 
-            self.app.disassembler.load(binary)
+            self.app.disassembler.load(binary, filename=file_name)
             self.debug('Starting disassembly')
             self.status('Disassembling as %s' % self.app.disassembler.getFileType())
             disassembly = self.app.disassembler.disassemble()

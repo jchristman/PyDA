@@ -7,20 +7,21 @@ HWORD = 2   # 16 bits
 WORD = 4    # 32 bits
 DWORD = 8   # 64 bits
 
-def disassemble(binary):
-    return ELF(binary)
+def disassemble(binary, filename=None):
+    return ELF(binary, filename=filename)
 #except: return False
 
 FILETYPE_NAME = 'ELF'
 
 class ELF:
     FILETYPE_NAME = 'ELF'
-    def __init__(self, binary):
+    def __init__(self, binary, filename=None):
         magic_offset = 0
         if not binary[magic_offset : magic_offset + WORD] == '\x7FELF':
             raise BadMagicHeaderException()
         
         self.binary = binary
+        self.filename = filename
 
         offset = 4
         self.bin_class = capstone.CS_MODE_32 if unpack('B', self.binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_64
@@ -137,6 +138,9 @@ class ELF:
             "Architecture Mode": "32-bit" if self.bin_class == capstone.CS_MODE_32 else "64-bit",
             "Entry Point": "0x{:x}".format(self.entry_point),
         }
+
+        if self.filename != None:
+            fields["Filename"] = self.filename
         
         max_length = max(len(x) + len(fields[x]) for x in fields) + 2
 
