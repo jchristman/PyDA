@@ -172,6 +172,9 @@ class PyDAInterface(Frame):
                 for function in disassembly.functions:
                     self.app.addCallback(self.main_queue, self.functions_listbox.insert, (END, function.name))
 
+                for string in disassembly.strings:
+                    self.app.addCallback(self.main_queue, self.strings_listbox.insert, (END, string.name))
+
                 self.debug('Processing disassembly')
                 self.status('Processing disassembly')
                 self.dis_lines = disassembly.serialize()
