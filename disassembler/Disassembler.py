@@ -1,4 +1,5 @@
 from settings import *
+# import traceback
 
 class Disassembler:
     def load(self, binary):
@@ -9,6 +10,8 @@ class Disassembler:
                 break
             except:
                 print 'File header did not match %s' % format.FILETYPE_NAME
+                # traceback.print_exc()
+
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 

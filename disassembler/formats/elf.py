@@ -2,6 +2,11 @@ import capstone
 from helpers import *
 from struct import unpack
 
+BYTE = 1    # 8 bits
+HWORD = 2   # 16 bits
+WORD = 4    # 32 bits
+DWORD = 8   # 64 bits
+
 def disassemble(binary):
     return ELF(binary)
 #except: return False
@@ -93,21 +98,56 @@ class ELF:
 
     def disassemble(self):
         md = capstone.Cs(self.arch, self.bin_class)
-        disassembly = CommonProgramDisassemblyFormat(ELF.PROGRAM_INFO)
+        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo())
         
         for s in self.sections:
-            if s.sh_name_string in ELF.dont_disassemble:
-                continue
-
-            section = CommonSectionFormat(s.sh_name_string)
+            section = None
             sCODE = self.binary[s.sh_offset : s.sh_offset + s.sh_size]
+            if s.sh_name_string in ELF.dont_disassemble:
+                section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
+            else:
+                section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate
 
-            for inst in md.disasm(sCODE, s.sh_addr):
-                section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str))
+                # linear sweep (for now)
+                for inst in md.disasm(sCODE, s.sh_addr):
+                    section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
             
-            section.searchForFunctions()
             disassembly.addSection(section)
         return disassembly
+
+    def getArchName(self):
+        arc = None
+        if self.arch == capstone.CS_ARCH_X86:
+            arc = "x86"
+        elif self.arch == capstone.CS_ARCH_PPC:
+            arc = "PPC"
+        elif self.arch == capstone.CS_ARCH_ARM:
+            arc = "ARM"
+        elif self.arch == capstone.CS_ARCH_ARM64:
+            arc = "ARM64"
+
+        return arc
+
+    def getProgramInfo(self):
+        import hashlib
+        fields = {
+            "File MD5": hashlib.md5(self.binary).hexdigest(),
+            "File Format": self.FILETYPE_NAME,
+            "Architecture": self.getArchName(),
+            "Architecture Mode": "32-bit" if self.bin_class == capstone.CS_MODE_32 else "64-bit",
+            "Entry Point": "0x{:x}".format(self.entry_point),
+        }
+        
+        max_length = max(len(x) + len(fields[x]) for x in fields) + 2
+
+        program_info = "#"*(max_length+12) + "\n"
+        for x in fields:
+            program_info += "###" 
+            program_info += ("   {:<%d}   " % max_length).format(x + ": " + fields[x])
+            program_info += "###\n"
+        program_info += "#"*(max_length+12) + "\n"
+
+        return program_info
 
     class Section:
         def __init__(self, elf, index, entry_size, word):
@@ -123,12 +163,4 @@ class ELF:
             self.sh_addralign = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 4 : entry_offset + 16 + word[1] * 5])[0] # 32 or 64 bits
             self.sh_entrsize  = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 5 : entry_offset + 16 + word[1] * 6])[0] # 32 or 64 bits
 
-    PROGRAM_INFO = '''
-    ##############################################
-    ###     ELF Information                    ###
-    ###     Executable:                        ###
-    ###     More stuff from the beginning      ###   
-    ##############################################
-    '''
-
-    dont_disassemble = ['.comment','.shstrtab','.symtab','.strtab','.note.ABI-tag','.note.gnu.build-id','.hash','.gnu.hash','.dynsym','.dynstr','.gnu.version','.gnu.version_r','.rodata','.eh_frame','.init_array','.jcr','.dynamic','.got','.got.plt','.data','.bss','.interp','.eh_frame_hdr','.plt','.init','.rel.plt','.rel.dyn']
+    dont_disassemble = ['.comment','.shstrtab','.symtab','.strtab','.note.ABI-tag','.note.gnu.build-id','.hash','.gnu.hash','.dynsym','.dynstr','.gnu.version','.gnu.version_r','.rodata','.eh_frame','.init_array','.jcr','.dynamic','.got','.got.plt','.data','.bss','.interp','.eh_frame_hdr','.plt','.init','.rel.plt','.rel.dyn','.rela.plt','.rela.dyn']
