@@ -1,4 +1,4 @@
-from Tkinter import Frame, IntVar, END
+from Tkinter import Frame, StringVar, IntVar, END, OptionMenu
 from guielements import MenuBar, ToolBar, PanedWindow
 from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
@@ -6,7 +6,7 @@ from redirectors import StdoutRedirector
 from platform import system
 from thread import start_new_thread
 from settings import DEBUG, PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL, REDIR_STDOUT
-import sys
+import sys, time #FIXME
 import tkFileDialog, tkMessageBox
 
 class PyDAInterface(Frame):
@@ -31,6 +31,7 @@ class PyDAInterface(Frame):
         self.toolbar = ToolBar(self.app, 'top')
         self.toolbar.addButton('Import', self.importFile, 'left')
         self.toolbar.addButton('Share', self.share, 'right')
+        self.toolbar.addButton('Test', self.test, 'right')
         #############################
         
         # Set up the status bar ##
@@ -126,6 +127,9 @@ class PyDAInterface(Frame):
 
     def text_context_right_click(self, text_tag):
         print 'Right clicked %s' % text_tag
+        string_var = StringVar()
+        context_menu = OptionMenu(self.app, string_var, 'Test 1', 'Test 2', 'Test 3')
+        context_menu.pack()
 
     def stdoutMessage(self, message):
         self.debug_textbox.appendData(message)
@@ -174,6 +178,7 @@ class PyDAInterface(Frame):
 
                 self.debug('Processing disassembly')
                 self.status('Processing disassembly')
+                t0 = time.time()
                 self.dis_lines = disassembly.serialize()
                 lines_to_process = len(self.dis_lines)
                 
@@ -191,9 +196,35 @@ class PyDAInterface(Frame):
                     data += '%s%s' % (PYDA_COMMENT, '')
                     data += '%s\n' % PYDA_ENDL
 
+                t1 = time.time()
+                print 'Timing data: %.04f' % (t1 - t0)
+
                 self.status('Done.')
                 self.debug('Putting the data into the disassembly tab')
                 self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
+
+    def test(self):
+        dialog = tkFileDialog.Open(self)
+        file_name = dialog.show()
+        start_new_thread(self._test, (file_name,))
+
+    def _test(self, file_name):
+        print 'Reading the file'
+        binary = open(file_name, 'rb').read()
+        print 'Finding File Format'
+        self.app.disassembler.load(binary)
+        print 'Disassembling'
+        disassembly = self.app.disassembler.disassemble()
+        if isinstance(disassembly, CommonProgramDisassemblyFormat):
+            print 'Running generator'
+            t0 = time.time()
+            data = disassembly.program_info + PYDA_ENDL + '\n'
+            for line,line_func in disassembly.getLines(disassembly.getSectionByName('.text')):
+                data += line
+            t1 = time.time() 
+            print 'Timing data: %.04f' % (t1 - t0)
+
+            self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
 
     def share(self):
         self.server.start()

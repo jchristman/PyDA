@@ -100,8 +100,23 @@ class CommonProgramDisassemblyFormat:
             self.sections.append(section.sort())
             self.functions += section.functions
 
+    def getSectionByName(self, name):
+        for section in self.sections:
+            if section.name == name:
+                return section
+        return None
+
     def sort(self):
         self.sections = sorted(self.sections, key=lambda x: x.instructions[0].address)
+
+    def getLines(self, section, start=None, end=None):
+        if start is None:
+            start = 0
+        if end is None:
+            end = len(section.instructions)
+        for inst in section.instructions[start : end]:
+            data = 'P_S%s: P_A0x%xP_G - P_M%s  P_O%s  P_CP_N\n' % (section.name, inst.address, inst.mnemonic, inst.op_str)
+            yield data, inst.function
 
     def serialize(self):
         self.sort()
