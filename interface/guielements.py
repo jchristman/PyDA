@@ -387,6 +387,8 @@ class Textbox(Text):
 
     def clear(self):
         self.delete(0.0, END)
+        if self.context_manager:
+            self.context_manager.clearQueue()
 
     def redraw(self):
         num_lines = LINES_BUFFER_SIZE

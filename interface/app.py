@@ -39,46 +39,32 @@ class RootApplication(Tk):
         
         self.disassembler = disassembler
         self.server = server
-        
-        self.callback_queue = Queue()
-        self.pollCallbackQueue()
+        self.queues = []
 
-    # TODO: Rework progress monitor code
-    '''
-    def startProgressMonitor(self, callback):
-        self.progress_monitor = True
-        self.progress_point_callback = callback
+    def createCallbackQueue(self):
+        self.queues.append(Queue())
+        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue, self.queues[-1])
+        return self.queues[-1]
 
-    def stopProgressMonitor(self):
-        self.progress_monitor = False
-    
-    def addProgressPoint(self):
-        self.addCallback('PROGRESS POINT')
-
-    def addBreak(self):
-        self.addCallback('BREAK')'''
-
-    def addCallback(self, callback, args=None, kwargs=None):
+    def addCallback(self, queue, callback, args=None, kwargs=None):
         '''
         Arguments:
         callback - a function pointer that should be called when the item is called up in the queue
         args - a tuple of arguments
         kwargs - a tuple of keyword arguments !!! NOT YET VERIFIED TO WORK !!!
         '''
-        self.callback_queue.put((callback, args, kwargs))
+        queue.put((callback, args, kwargs))
 
-    def pollCallbackQueue(self):
+    def pollCallbackQueue(self, queue):
         '''
         Change settings inside of settings.py to change the frequency of calls to this function as well
         as the amount of queue items to process per call.
         '''
-        if self.callback_queue.qsize():
-            print self.callback_queue.qsize(), 'items in queue!'
         for i in xrange(QUEUE_PROCESS_AMT):
-            if self.callback_queue.empty():
+            if queue.empty():
                 break
 
-            callback,args,kwargs = self.callback_queue.get()
+            callback,args,kwargs = queue.get()
             if args:
                 if kwargs:
                     callback(*args, **kwargs)
@@ -90,7 +76,7 @@ class RootApplication(Tk):
                 else:
                     callback()
         
-        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue)
+        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue, queue)
 
 if __name__ == '__main__':
     build_and_run()

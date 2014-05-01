@@ -148,7 +148,7 @@ class PE:
 
     def __getPEOffset(self):
         self.__PEOffset = unpack("<I", str(self.__binary[60:64]))[0]
-        print "self.__PEOffset", self.__PEOffset
+        #print "self.__PEOffset", self.__PEOffset
         if self.__binary[self.__PEOffset:self.__PEOffset+4] != "50450000".decode("hex"):
             print "[Error] PE.__getPEOffset() - Bad PE signature"
             raise BadMagicHeaderException()

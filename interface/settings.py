@@ -1,16 +1,19 @@
+# overall settings
+DEBUG = True
+
 # app.py settings
-QUEUE_PROCESS_AMT = 2000
-QUEUE_PROCESS_DELAY = 10
+QUEUE_PROCESS_AMT = 7000 # Because when the clear is called, we need to process 7000 items
+QUEUE_PROCESS_DELAY = 50
 
 # guielements.py settings
 START = '1.0'
-LINES_BUFFER_SIZE = 500
+LINES_BUFFER_SIZE = 1000
 LINES_BUFFER_LOW_CUTOFF = 0.49
 LINES_BUFFER_HIGH_CUTOFF = 0.51
 MOVETO_YVIEW = 0.5
 MAX_LINES_JUMP = 40
 MAX_JUMP_CUTOFF = float(MAX_LINES_JUMP) / LINES_BUFFER_SIZE
-REDIR_STDOUT = False
+REDIR_STDOUT = True
 
 # contextmanager.py settings
 PYDA_SEP = 'P_'

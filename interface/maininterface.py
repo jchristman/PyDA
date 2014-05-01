@@ -5,7 +5,7 @@ from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
 from thread import start_new_thread
-from settings import PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL, REDIR_STDOUT
+from settings import DEBUG, PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL, REDIR_STDOUT
 import sys
 import tkFileDialog, tkMessageBox
 
@@ -13,6 +13,7 @@ class PyDAInterface(Frame):
     def __init__(self, app):
         Frame.__init__(self, app)
         self.app = app
+        self.main_queue = self.app.createCallbackQueue()
         self.initUI()
         self.centerWindow()
 
@@ -100,10 +101,11 @@ class PyDAInterface(Frame):
         # Get the appropriate button number based on system
         right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
 
+        dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbo
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
-                self.disassembly_textbox, right_click_button, 
-                self.text_context_right_click, self.app.addCallback, 
+                self.app, dis_textbox_context_queue, self.disassembly_textbox,
+                right_click_button, self.text_context_right_click,
                 [(PYDA_SECTION, 'darkgreen'), (PYDA_MNEMONIC, 'blue'), 
                     (PYDA_OP_STR, 'darkblue'), (PYDA_COMMENT, 'darkgreen'), 
                     (PYDA_GENERIC, 'black'), (PYDA_ENDL, 'black')])
@@ -128,6 +130,16 @@ class PyDAInterface(Frame):
     def stdoutMessage(self, message):
         self.debug_textbox.appendData(message)
 
+    def status(self, message):
+        self.app.addCallback(self.main_queue, self._status, (message,))
+
+    def _status(self, message):
+        self.status_label['text'] = message
+
+    def debug(self, message):
+        if DEBUG:
+            print message + '\n',
+
     def contextMenu(self, e):
         print vars(e)
 
@@ -136,19 +148,6 @@ class PyDAInterface(Frame):
 
     def onExit(self):
         self.quit()
-
-    def progressMonitorCallback(self, step):
-        orig = self.status_progress_bar['value']
-        self.status_progress_bar.step(step)
-        if self.status_progress_bar['value'] >= self.status_progress_bar['maximum'] or orig > self.status_progress_bar['value']:
-            self.app.stopProgressMonitor()
-            self.status('Finished')
-
-    def status(self, message):
-        self.app.addCallback(self._status, (message,))
-
-    def _status(self, message):
-        self.status_label['text'] = message
 
     ########### PyDA Specific Functions ###########
     def importFile(self):
@@ -159,15 +158,22 @@ class PyDAInterface(Frame):
 
     def disassembleFile(self, file_name):
         if not file_name == '':
+            self.status('Reading %s' % file_name)
+            self.debug('Reading %s' % file_name)
             binary = open(file_name, 'rb').read()
 
             self.app.disassembler.load(binary)
+            self.debug('Starting disassembly')
+            self.status('Disassembling as %s' % self.app.disassembler.getFileType())
             disassembly = self.app.disassembler.disassemble()
+            self.debug('Finished disassembly')
             
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
-                    self.app.addCallback(self.functions_listbox.insert, (END, function.name))
+                    self.app.addCallback(self.main_queue, self.functions_listbox.insert, (END, function.name))
 
+                self.debug('Processing disassembly')
+                self.status('Processing disassembly')
                 self.dis_lines = disassembly.serialize()
                 lines_to_process = len(self.dis_lines)
                 
@@ -185,72 +191,9 @@ class PyDAInterface(Frame):
                     data += '%s%s' % (PYDA_COMMENT, '')
                     data += '%s\n' % PYDA_ENDL
 
-                print 'Setting textbox data'
-                self.app.addCallback(self.disassembly_textbox.setData, (data,))
-                #self.app.addCallback(self.startTagging)
-
-    def startTagging(self):
-        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
-            r'^\.[a-zA-Z]+: 0x[a-fA-F0-9]+ \- ', 'section', 'matchStart1', 
-            'matchEnd1', None, 0, 3))
-        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
-            r'\- [a-zA-Z ]+  ', 'mnemonic', 'matchStart2', 'matchEnd2', 
-            None, 2, 2))
-        start_new_thread(self.highlightPattern, (self.disassembly_textbox, 
-            r'  [a-zA-Z0-9 ,\-\+\*\[\]]+$', 'op_str', 'matchStart3', 
-            'matchEnd3', self.disassembly_textbox_context_manager, 2))
-
-    def highlightPattern(self, widget, pattern, tag, startMark, endMark, widget_context_manager=None, offset=0, endOffset=0):
-        '''Apply the given tag to all text that matches the given pattern
-
-        If 'regexp' is set to True, pattern will be treated as a regular expression
-        '''
-
-        start = widget.index("1.0")
-        end = widget.index("end")
-        widget.mark_set(startMark,start)
-        widget.mark_set(endMark,start)
-        widget.mark_set("searchLimit", end)
-
-        count = IntVar()
-        while True:
-            index = widget.search(pattern, endMark, "searchLimit",
-                                count=count, regexp=True)
-            if index == "": break
-            index = index.split('.')
-            index = index[0] + '.' + str(int(index[1]) + offset)
-            widget.mark_set(startMark, index)
-            widget.mark_set(endMark, "%s+%sc" % (index,count.get() - offset - endOffset))
-            
-            if widget_context_manager:
-                tag, uuid = widget_context_manager.createTags(tag)
-                widget.tag_add(tag, startMark, endMark)
-                widget.tag_add(uuid, startMark, endMark)
-            else:
-                widget.tag_add(tag, startMark, endMark)
-    '''
-    def insertLine(self, line):
-        try:
-            if not line[0] == self.current_section: # Then we are entering a new section
-                self.current_section = line[0]
-                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n+++++++++++++++++++++++++++++++++\n"))
-                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "    Section Name: %s\n\n" % line[0]))
-            if not line[4] == self.current_function and not line[4] == None: # Then we are entering a new function
-                self.current_function = line[4]
-                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n=================================\n"))
-                self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "    Function Name: %s\n\n" % line[4].name))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[0], self.disassembly_text_context_manager.createTags('section')))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " - "))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "0x%x" % line[1], self.disassembly_text_context_manager.createTags('address')))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, ": "))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[2], self.disassembly_text_context_manager.createTags('mnemonic')))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " "))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, line[3], self.disassembly_text_context_manager.createTags('op_str')))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, " "))
-            #self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "", self.app.addCallback(self.text_context_manager.addComment(self.app.addCallback(self.text_context_right_click)))
-            self.app.addCallback(self.disassembly_textbox.insert, (INSERT, "\n"))
-        except KeyboardInterrupt:
-            print self.dis_lines.index(line), line'''
+                self.status('Done.')
+                self.debug('Putting the data into the disassembly tab')
+                self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
 
     def share(self):
         self.server.start()
