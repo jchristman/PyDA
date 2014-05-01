@@ -52,5 +52,5 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-# Others
-todo
+# OSX
+.DS_Store
