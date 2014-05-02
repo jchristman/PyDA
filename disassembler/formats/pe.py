@@ -3,12 +3,11 @@ from helpers import *
 from ctypes import *
 from struct import unpack
 
-def disassemble(binary):
-    return PE(binary)
+def disassemble(binary, filename=None):
+    return PE(binary, filename=filename)
 #except: return False
 
 FILETYPE_NAME = 'PE'
-
 # The parsing logic below is blatantly ripped off of ROPGadget v5.0:
 # PE class =========================================================================================
 
@@ -133,8 +132,9 @@ class IMAGE_SECTION_HEADER(Structure):
 """ This class parses the PE format """
 class PE:
     FILETYPE_NAME = 'PE'
-    def __init__(self, binary):
+    def __init__(self, binary, filename=None):
         self.__binary = bytearray(binary)
+        self.__filename = filename
 
         self.__PEOffset              = 0x00000000
         self.__IMAGE_FILE_HEADER     = None
@@ -148,7 +148,6 @@ class PE:
 
     def __getPEOffset(self):
         self.__PEOffset = unpack("<I", str(self.__binary[60:64]))[0]
-        #print "self.__PEOffset", self.__PEOffset
         if self.__binary[self.__PEOffset:self.__PEOffset+4] != "50450000".decode("hex"):
             print "[Error] PE.__getPEOffset() - Bad PE signature"
             raise BadMagicHeaderException()
@@ -234,29 +233,46 @@ class PE:
 
     def disassemble(self):
         md = capstone.Cs(self.getArch(), self.getArchMode())
-        disassembly = CommonProgramDisassemblyFormat(PE.PROGRAM_INFO)
+        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo())
 
         for s in self.getExecSections():
-            if s["name"] in PE.dont_disassemble:
-                continue
-            
             s["name"] = s["name"].replace('\x00','')
-            section = CommonSectionFormat(s["name"])
+            section = CommonSectionFormat(s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("rwx")) #TODO: make flags more accurate
 
+            # linear sweep (for now)
             for inst in md.disasm(s["opcodes"], s["vaddr"]):
-                section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str))
+                section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
 
-            section.searchForFunctions()
             disassembly.addSection(section)
+
+        for s in self.getDataSections():
+            s["name"] = s["name"].replace('\x00','')
+            section = CommonSectionFormat(s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
+            disassembly.addSection(section)
+
         return disassembly
 
+    def getProgramInfo(self):
+        import hashlib
+        fields = {
+            "File MD5": hashlib.md5(self.__binary).hexdigest(),
+            "File Format": self.FILETYPE_NAME,
+            "Architecture": "x86" if self.getArch() == CS_ARCH_X86 else "ARM",
+            "Architecture Mode": "32-bit" if self.getArchMode() == CS_MODE_32 else "64-bit",
+            "Entry Point": "0x{:x}".format(self.getEntryPoint()),
+        }
+        if self.__filename != None:
+            fields["Filename"] = self.__filename
+        
+        max_length = max(len(x) + len(fields[x]) for x in fields) + 2
 
-    PROGRAM_INFO = '''
-    ##############################################
-    ###     PE Information                     ###
-    ###     Executable:                        ###
-    ###     More stuff from the beginning      ###
-    ##############################################
-    '''
+        program_info = "#"*(max_length+12) + "\n"
+        for x in fields:
+            program_info += "###" 
+            program_info += ("   {:<%d}   " % max_length).format(x + ": " + fields[x])
+            program_info += "###\n"
+        program_info += "#"*(max_length+12) + "\n"
+
+        return program_info
 
     dont_disassemble = ['.comment','.shstrtab','.symtab','.strtab','.note.ABI-tag','.note.gnu.build-id','.hash','.gnu.hash','.dynsym','.dynstr','.gnu.version','.gnu.version_r','.rodata','.eh_frame','.init_array','.jcr','.dynamic','.got','.got.plt','.data','.bss','.interp','.eh_frame_hdr','.plt','.init','.rel.plt','.rel.dyn']

@@ -166,7 +166,7 @@ class PyDAInterface(Frame):
             self.debug('Reading %s' % file_name)
             binary = open(file_name, 'rb').read()
 
-            self.app.disassembler.load(binary)
+            self.app.disassembler.load(binary, filename=file_name)
             self.debug('Starting disassembly')
             self.status('Disassembling as %s' % self.app.disassembler.getFileType())
             disassembly = self.app.disassembler.disassemble()
@@ -175,6 +175,9 @@ class PyDAInterface(Frame):
             if isinstance(disassembly, CommonProgramDisassemblyFormat):
                 for function in disassembly.functions:
                     self.app.addCallback(self.main_queue, self.functions_listbox.insert, (END, function.name))
+
+                for string in disassembly.strings:
+                    self.app.addCallback(self.main_queue, self.strings_listbox.insert, (END, string.name))
 
                 self.debug('Processing disassembly')
                 self.status('Processing disassembly')
