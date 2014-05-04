@@ -12,14 +12,14 @@ from maininterface import PyDAInterface
 from settings import QUEUE_PROCESS_AMT,QUEUE_PROCESS_DELAY
 from Queue import Queue
 
-def build_and_run(disassembler, server):
+def build_and_run(disassembler, executor, server):
     '''
     Arguments:
     disassembler - the PyDA disassembler class that contains methods for GUI operations
     server - the PyDA server that will be used for multiplayer work
     '''
 
-    root = RootApplication(disassembler, server)
+    root = RootApplication(disassembler, executor, server)
     app = PyDAInterface(root)
     root.mainloop()
 
