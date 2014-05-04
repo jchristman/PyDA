@@ -4,9 +4,7 @@ from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
-from thread import start_new_thread
-from settings import DEBUG, PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL, REDIR_STDOUT
-import sys, time #FIXME
+import sys
 import tkFileDialog, tkMessageBox
 
 class PyDAInterface(Frame):
@@ -14,8 +12,20 @@ class PyDAInterface(Frame):
         Frame.__init__(self, app)
         self.app = app
         self.main_queue = self.app.createCallbackQueue()
+        self.initVars()
         self.initUI()
         self.centerWindow()
+
+    def initVars(self):
+        self.PYDA_SECTION = self.app.settings_manager.get('context', 'pyda-section')
+        self.PYDA_ADDRESS = self.app.settings_manager.get('context', 'pyda-address')
+        self.PYDA_MNEMONIC = self.app.settings_manager.get('context', 'pyda-mnemonic')
+        self.PYDA_OP_STR = self.app.settings_manager.get('context', 'pyda-op-str')
+        self.PYDA_COMMENT = self.app.settings_manager.get('context', 'pyda-comment')
+        self.PYDA_GENERIC = self.app.settings_manager.get('context', 'pyda-generic')
+        self.PYDA_ENDL = self.app.settings_manager.get('context', 'pyda-endl')
+        self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
+        self.DEBUG = self.app.settings_manager.getint('debugging', 'debug-on')
 
     def initUI(self):
         self.app.title("PyDA")
@@ -31,8 +41,7 @@ class PyDAInterface(Frame):
         self.toolbar = ToolBar(self.app, 'top')
         self.toolbar.addButton('Import', self.importFile, 'left')
         self.toolbar.addButton('Share', self.share, 'right')
-        self.toolbar.addButton('Test', self.test, 'right')
-        #############################
+        self.toolbar.addButton('Print Profile Stats', self.printStats, 'right')
         
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
@@ -107,16 +116,16 @@ class PyDAInterface(Frame):
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
                 self.app, dis_textbox_context_queue, self.disassembly_textbox,
                 right_click_button, self.text_context_right_click,
-                [(PYDA_SECTION, 'darkgreen'), (PYDA_MNEMONIC, 'blue'), 
-                    (PYDA_OP_STR, 'darkblue'), (PYDA_COMMENT, 'darkgreen'), 
-                    (PYDA_GENERIC, 'black'), (PYDA_ENDL, 'black')])
+                [(self.PYDA_SECTION, 'darkgreen'), (self.PYDA_MNEMONIC, 'blue'), 
+                    (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'), 
+                    (self.PYDA_GENERIC, 'black'), (self.PYDA_ENDL, 'black')])
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
         # Redirect stdout to the debug window
-        if REDIR_STDOUT:
+        if self.REDIR_STDOUT:
             sys.stdout = StdoutRedirector(self.stdoutMessage)
-        print "Stdout is being redirected to here"
+        self.debug("Stdout is being redirected to here")
 
     def centerWindow(self):
         height = self.app.winfo_screenheight() * 5/6
@@ -126,7 +135,7 @@ class PyDAInterface(Frame):
         self.app.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
     def text_context_right_click(self, text_tag):
-        print 'Right clicked %s' % text_tag
+        self.debug('Right clicked %s' % text_tag)
         string_var = StringVar()
         context_menu = OptionMenu(self.app, string_var, 'Test 1', 'Test 2', 'Test 3')
         context_menu.pack()
@@ -141,7 +150,7 @@ class PyDAInterface(Frame):
         self.status_label['text'] = message
 
     def debug(self, message):
-        if DEBUG:
+        if self.DEBUG:
             print message + '\n',
 
     def contextMenu(self, e):
@@ -150,84 +159,40 @@ class PyDAInterface(Frame):
     def onError(self):
         tkMessageBox.showerror("Error", "Could not determine file type from magic header.")
 
+    def destroy(self):
+        self.app.shutdown()
+    
     def onExit(self):
-        self.quit()
+        print 'Shutting down'
+        self.app.shutdown()
 
-    ########### PyDA Specific Functions ###########
     def importFile(self):
-        # Returns the opened file
         dialog = tkFileDialog.Open(self)
         file_name = dialog.show()
-        start_new_thread(self.disassembleFile, (file_name,))
+        self.app.executor.submit(self.disassembleFile, file_name)
 
     def disassembleFile(self, file_name):
-        if not file_name == '':
-            self.status('Reading %s' % file_name)
-            self.debug('Reading %s' % file_name)
-            binary = open(file_name, 'rb').read()
-
-            self.app.disassembler.load(binary, filename=file_name)
-            self.debug('Starting disassembly')
-            self.status('Disassembling as %s' % self.app.disassembler.getFileType())
-            disassembly = self.app.disassembler.disassemble()
-            self.debug('Finished disassembly')
-            
-            if isinstance(disassembly, CommonProgramDisassemblyFormat):
-                for function in disassembly.functions:
-                    self.app.addCallback(self.main_queue, self.functions_listbox.insert, (END, function.name))
-
-                for string in disassembly.strings:
-                    self.app.addCallback(self.main_queue, self.strings_listbox.insert, (END, string.name))
-
-                self.debug('Processing disassembly')
-                self.status('Processing disassembly')
-                t0 = time.time()
-                self.dis_lines = disassembly.serialize()
-                lines_to_process = len(self.dis_lines)
-                
-                self.current_section = ''
-                self.current_function = ''
-
-                data = disassembly.program_info + PYDA_ENDL + '\n'
- 
-                for line in self.dis_lines:
-                    data += '%s%s: ' % (PYDA_SECTION, line[0])
-                    data += '%s0x%x' % (PYDA_ADDRESS, line[1])
-                    data += '%s - ' % (PYDA_GENERIC)
-                    data += '%s%s  ' % (PYDA_MNEMONIC, line[2])
-                    data += '%s%s  ' % (PYDA_OP_STR, line[3])
-                    data += '%s%s' % (PYDA_COMMENT, '')
-                    data += '%s\n' % PYDA_ENDL
-
-                t1 = time.time()
-                print 'Timing data: %.04f' % (t1 - t0)
-
-                self.status('Done.')
-                self.debug('Putting the data into the disassembly tab')
-                self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
-
-    def test(self):
-        dialog = tkFileDialog.Open(self)
-        file_name = dialog.show()
-        start_new_thread(self._test, (file_name,))
-
-    def _test(self, file_name):
-        print 'Reading the file'
+        self.debug('Reading %s' % file_name)
+        self.status('Reading %s' % file_name)
         binary = open(file_name, 'rb').read()
-        print 'Finding File Format'
+        self.debug('Loading binary')
+        self.status('Loading binary')
         self.app.disassembler.load(binary)
-        print 'Disassembling'
+        self.debug('Disassembling as %s' % self.app.disassembler.getFileType())
+        self.status('Disassembling as %s' % self.app.disassembler.getFileType())
         disassembly = self.app.disassembler.disassemble()
+        self.debug('Finished disassembling')
+        self.status('Finished disassembling')
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
-            print 'Running generator'
-            t0 = time.time()
-            data = disassembly.program_info + PYDA_ENDL + '\n'
+            data = disassembly.program_info + self.PYDA_ENDL + '\n'
             for line,line_func in disassembly.getLines(disassembly.getSectionByName('.text')):
                 data += line
-            t1 = time.time() 
-            print 'Timing data: %.04f' % (t1 - t0)
 
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
+
+    def printStats(self):
+        stats = self.app.executor.getProfileStats()
+        stats.sort_stats('cumulative').print_stats()
 
     def share(self):
         self.server.start()

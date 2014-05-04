@@ -9,19 +9,19 @@ prevent the GUI from blocking.
 
 from Tkinter import Tk
 from maininterface import PyDAInterface
-from settings import QUEUE_PROCESS_AMT,QUEUE_PROCESS_DELAY
 from Queue import Queue
 
-def build_and_run(disassembler, executor, server):
+def build_and_run(settings_manager, disassembler, executor, server):
     '''
     Arguments:
     disassembler - the PyDA disassembler class that contains methods for GUI operations
     server - the PyDA server that will be used for multiplayer work
     '''
 
-    root = RootApplication(disassembler, executor, server)
+    root = RootApplication(settings_manager, disassembler, executor, server)
     app = PyDAInterface(root)
     root.mainloop()
+    print 'Outside mainloop'
 
 class RootApplication(Tk):
     '''
@@ -34,16 +34,19 @@ class RootApplication(Tk):
     that executes a predetermined amount every so often. It allows the callback GUI effects
     to take place and keeps the GUI from blocking with a large number of operations.
     '''
-    def __init__(self, disassembler, server):
+    def __init__(self, settings_manager, disassembler, executor, server):
         Tk.__init__(self)
-        
+        self.settings_manager = settings_manager
         self.disassembler = disassembler
+        self.executor = executor
         self.server = server
+        self.queue_process_amount = settings_manager.getint('application', 'queue-process-amount')
+        self.queue_process_delay = settings_manager.getint('application', 'queue-process-delay')
         self.queues = []
 
     def createCallbackQueue(self):
         self.queues.append(Queue())
-        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue, self.queues[-1])
+        self.after(self.queue_process_delay, self.pollCallbackQueue, self.queues[-1])
         return self.queues[-1]
 
     def addCallback(self, queue, callback, args=None, kwargs=None):
@@ -60,7 +63,7 @@ class RootApplication(Tk):
         Change settings inside of settings.py to change the frequency of calls to this function as well
         as the amount of queue items to process per call.
         '''
-        for i in xrange(QUEUE_PROCESS_AMT):
+        for i in xrange(self.queue_process_amount):
             if queue.empty():
                 break
 
@@ -76,7 +79,16 @@ class RootApplication(Tk):
                 else:
                     callback()
         
-        self.after(QUEUE_PROCESS_DELAY, self.pollCallbackQueue, queue)
+        self.after(self.queue_process_delay, self.pollCallbackQueue, queue)
+
+    def destroy(self):
+        self.shutdown()
+
+    def shutdown(self):
+        print 'Shutting down threads'
+        self.executor.shutdown()
+        print 'Quitting'
+        self.quit()
 
 if __name__ == '__main__':
     build_and_run()
