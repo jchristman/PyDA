@@ -66,7 +66,6 @@ class ThreadPoolExecutor:
         self.activate_worker.release()
         if wait:
             for worker in self.workers:
-                print 'waiting on worker'
                 worker.join()
 
     def getProfileStats(self):

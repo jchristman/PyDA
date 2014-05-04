@@ -1,11 +1,11 @@
 from Tkinter import CURRENT
 from tkFont import Font
-from settings import PYDA_SEP #, PYDA_SECTION, PYDA_ADDRESS, PYDA_MNEMONIC, PYDA_OP_STR, PYDA_COMMENT, PYDA_GENERIC, PYDA_ENDL
 
 class WidgetClickContextManager:
-    def __init__(self, app, processing_queue, widget, click_string, callback, tags):
+    def __init__(self, app, processing_queue, separator, widget, click_string, callback, tags):
         self.app = app
         self.processing_queue = processing_queue
+        self.separator = separator
         self.widget = widget
         self.callback = callback
         self.processing_queue = processing_queue
@@ -28,9 +28,9 @@ class WidgetClickContextManager:
             self.processing_queue.queue.clear()
 
     def insert(self, widget, index, line):
-        line = [x for x in line.split(PYDA_SEP) if not x == '']
+        line = [x for x in line.split(self.separator) if not x == '']
         for part in line:
-            part_type = PYDA_SEP + part[0]
+            part_type = self.separator + part[0]
             part = part[1:]
             self.app.addCallback(self.processing_queue, widget.insert, (index, part, self.createTags(part_type)))
 

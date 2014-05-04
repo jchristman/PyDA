@@ -21,7 +21,6 @@ def build_and_run(settings_manager, disassembler, executor, server):
     root = RootApplication(settings_manager, disassembler, executor, server)
     app = PyDAInterface(root)
     root.mainloop()
-    print 'Outside mainloop'
 
 class RootApplication(Tk):
     '''
@@ -85,9 +84,7 @@ class RootApplication(Tk):
         self.shutdown()
 
     def shutdown(self):
-        print 'Shutting down threads'
         self.executor.shutdown()
-        print 'Quitting'
         self.quit()
 
 if __name__ == '__main__':

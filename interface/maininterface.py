@@ -17,6 +17,7 @@ class PyDAInterface(Frame):
         self.centerWindow()
 
     def initVars(self):
+        self.PYDA_SEP = self.app.settings_manager.get('context', 'pyda-sep')
         self.PYDA_SECTION = self.app.settings_manager.get('context', 'pyda-section')
         self.PYDA_ADDRESS = self.app.settings_manager.get('context', 'pyda-address')
         self.PYDA_MNEMONIC = self.app.settings_manager.get('context', 'pyda-mnemonic')
@@ -114,7 +115,7 @@ class PyDAInterface(Frame):
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbo
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
-                self.app, dis_textbox_context_queue, self.disassembly_textbox,
+                self.app, dis_textbox_context_queue, self.PYDA_SEP, self.disassembly_textbox,
                 right_click_button, self.text_context_right_click,
                 [(self.PYDA_SECTION, 'darkgreen'), (self.PYDA_MNEMONIC, 'blue'), 
                     (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'), 
