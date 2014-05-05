@@ -388,9 +388,14 @@ class Textbox(Text):
         self.data = [x + '\n' for x in data.split('\n') if len(x) > 0]
         self.redraw()
 
-    def appendData(self, data):
+    def appendData(self, data, moveto_end=False):
         self.data.append(data)
-        self.redraw()
+        self.insertBottomLine(len(self.data) - 1)
+        if moveto_end:
+            if self.context_manager:
+                self.context_manager.yview_moveto('1.0')
+            else:
+                self.yview_moveto('1.0')
 
     def clear(self):
         self.delete(0.0, END)
@@ -417,14 +422,14 @@ class Textbox(Text):
     def insertTopLine(self, line_index):
         if 0 <= line_index < len(self.data):
             if self.context_manager:
-                self.context_manager.insert(self, START, self.data[line_index])
+                self.context_manager.insert(START, self.data[line_index])
             else:
                 self.insert(START, self.data[line_index])
 
     def insertBottomLine(self, line_index):
         if 0 <= line_index < len(self.data):
             if self.context_manager:
-                self.context_manager.insert(self, 'end', self.data[line_index])
+                self.context_manager.insert('end', self.data[line_index])
             else:
                 self.insert('end', self.data[line_index])
 
@@ -495,7 +500,7 @@ class Textbox(Text):
             self.append_lines = 0 # Stop inserting or deleting lines
             self.current_data_offset = int(new_start/line_height) # divide the start location by the height of the line and truncate to an int
             self.redraw() # insert all data
-            
+
             # Now to a calculation for the position of the cursor
             end = new_start + line_height * display_height
             self.datayscroll('BYPASS', new_start, end)
@@ -507,7 +512,11 @@ class Textbox(Text):
                 view_start = str(view_test_start)
             else:
                 view_start = str(float(self.TCL_BUFFER_SIZE - view_test_end) / self.TCL_BUFFER_SIZE)
-            self.yview_moveto(view_start)
+            
+            if self.context_manager:
+                self.context_manager.yview_moveto(view_start)
+            else:
+                self.yview_moveto(view_start)
         elif args[0] == 'scroll':
             num_pages = int(args[1])
             self.current_data_offset += num_pages * display_height
@@ -528,6 +537,9 @@ class Textbox(Text):
                 view_start = str(view_test_start)
             else:
                 view_start = str(float(self.TCL_BUFFER_SIZE - view_test_end) / self.TCL_BUFFER_SIZE)
-            self.yview_moveto(view_start)
+            if self.context_manager:
+                self.context_manager.yview_moveto(view_start)
+            else:
+                self.yview_moveto(view_start)
         else:
             print args

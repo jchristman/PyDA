@@ -27,7 +27,7 @@ class PyDAInterface(Frame):
         self.PYDA_ENDL = self.app.settings_manager.get('context', 'pyda-endl')
         self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
         self.DEBUG = self.app.settings_manager.getint('debugging', 'debug-on')
-        self.PROFILE = self.app.settings_manager.getint('debugging', 'profile-on')
+        self.PROFILE = self.app.settings_manager.getint('debugging', 'profiler-on')
 
     def initUI(self):
         self.app.title("PyDA")
@@ -144,7 +144,7 @@ class PyDAInterface(Frame):
         context_menu.pack()
 
     def stdoutMessage(self, message):
-        self.debug_textbox.appendData(message)
+        self.debug_textbox.appendData(message, True)
 
     def status(self, message):
         self.app.addCallback(self.main_queue, self._status, (message,))
@@ -187,10 +187,18 @@ class PyDAInterface(Frame):
         self.debug('Finished disassembling')
         self.status('Finished disassembling')
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
+            self.status('Processing Data')
+            self.debug('Processing Functions')
+            for function in disassembly.functions:
+                self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end', function.name))
+            self.debug('Processing Strings')
+            for string in disassembly.strings:
+                self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end', string.contents))
+            self.debug('Processing Disassembly')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
             for line,line_func in disassembly.getLines(disassembly.getSectionByName('.text')):
                 data += line
-
+            self.status('Done')
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
 
     def printStats(self):

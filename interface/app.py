@@ -19,7 +19,8 @@ def build_and_run(settings_manager, disassembler, executor, server):
     '''
 
     root = RootApplication(settings_manager, disassembler, executor, server)
-    app = PyDAInterface(root)
+    try:    app = PyDAInterface(root)
+    except: root.shutdown(); exit()
     try:    root.mainloop()
     except: root.shutdown()
 

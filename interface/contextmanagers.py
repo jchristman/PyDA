@@ -27,12 +27,16 @@ class WidgetClickContextManager:
         with self.processing_queue.mutex:
             self.processing_queue.queue.clear()
 
-    def insert(self, widget, index, line):
+    def insert(self, index, line):
         line = [x for x in line.split(self.separator) if not x == '']
+        if index == '1.0': line = line[::-1]
         for part in line:
             part_type = self.separator + part[0]
             part = part[1:]
-            self.app.addCallback(self.processing_queue, widget.insert, (index, part, self.createTags(part_type)))
+            self.app.addCallback(self.processing_queue, self.widget.insert, (index, part, self.createTags(part_type)))
+
+    def yview_moveto(self, index):
+        self.app.addCallback(self.processing_queue, self.widget.yview_moveto, (index,))
 
     def addTagToBindings(self, tag, callback, foreground, click_string):
         self.widget.tag_config(tag, foreground=foreground)
