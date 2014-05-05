@@ -1,6 +1,6 @@
 from Tkinter import Frame, StringVar, IntVar, END, OptionMenu
 from guielements import MenuBar, ToolBar, PanedWindow
-from disassembler.formats.helpers import CommonProgramDisassemblyFormat
+from disassembler.formats.common import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
@@ -180,7 +180,7 @@ class PyDAInterface(Frame):
         binary = open(file_name, 'rb').read()
         self.debug('Loading binary')
         self.status('Loading binary')
-        self.app.disassembler.load(binary)
+        self.app.disassembler.load(binary, filename=file_name)
         self.debug('Disassembling as %s' % self.app.disassembler.getFileType())
         self.status('Disassembling as %s' % self.app.disassembler.getFileType())
         disassembly = self.app.disassembler.disassemble()

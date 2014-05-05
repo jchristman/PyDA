@@ -1,1 +1,1 @@
-__all__ = ['Disassembler.py']
+__all__ = ['disassembler.py']

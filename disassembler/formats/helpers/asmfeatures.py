@@ -1,5 +1,5 @@
 from capstone import *
-from helpers import CommonInstFormat
+from disassembler.formats.common import CommonInstFormat
 
 prologues = {}
 epilogues = {}
