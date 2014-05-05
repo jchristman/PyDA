@@ -54,3 +54,6 @@ docs/_build/
 
 # OSX
 .DS_Store
+
+# PyDA Stuff
+.stats
