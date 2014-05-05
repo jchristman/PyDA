@@ -27,6 +27,7 @@ class PyDAInterface(Frame):
         self.PYDA_ENDL = self.app.settings_manager.get('context', 'pyda-endl')
         self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
         self.DEBUG = self.app.settings_manager.getint('debugging', 'debug-on')
+        self.PROFILE = self.app.settings_manager.getint('debugging', 'profile-on')
 
     def initUI(self):
         self.app.title("PyDA")
@@ -42,7 +43,8 @@ class PyDAInterface(Frame):
         self.toolbar = ToolBar(self.app, 'top')
         self.toolbar.addButton('Import', self.importFile, 'left')
         self.toolbar.addButton('Share', self.share, 'right')
-        self.toolbar.addButton('Print Profile Stats', self.printStats, 'right')
+        if self.PROFILE:
+            self.toolbar.addButton('Print Profile Stats', self.printStats, 'right')
         
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
