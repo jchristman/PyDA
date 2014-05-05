@@ -1,6 +1,8 @@
 import capstone
-from helpers import *
+from common import *
+from disassembler.formats.helpers.flags import Flags
 from struct import unpack
+import pdb
 
 BYTE = 1    # 8 bits
 HWORD = 2   # 16 bits
@@ -108,7 +110,7 @@ class ELF:
                 section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
             else:
                 section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate
-
+                
                 # linear sweep (for now)
                 for inst in md.disasm(sCODE, s.sh_addr):
                     section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))

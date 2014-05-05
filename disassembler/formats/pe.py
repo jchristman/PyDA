@@ -1,5 +1,6 @@
 from capstone import *
-from helpers import *
+from common import *
+from disassembler.formats.helpers.flags import Flags
 from ctypes import *
 from struct import unpack
 
