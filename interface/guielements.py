@@ -454,13 +454,15 @@ class Textbox(Text):
         self.delete(START + ' linestart', START + ' linestart +%i line' % lines_to_delete)
 
     def datayscroll(self, *args):
-
         start = float(args[0])
         if abs(start - self.prev_start) > float(self.MAX_LINES_JUMP)/self.TCL_BUFFER_SIZE: # Debounce the noise
             self.prev_start = start
             return
 
         if len(self.data) > 0:
+            print start, self.prev_start
+            print start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF,
+            print start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF
             if start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF:
                 self.append_lines = 1
             elif start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF:
@@ -503,24 +505,23 @@ class Textbox(Text):
         line_height = (1.0 / len(self.data))
         display_height = self.cget('height')
         if args[0] == 'moveto':
-            new_start = float(args[1])
-            self.append_lines = 0 # Stop inserting or deleting lines
-            self.current_data_offset = int(new_start/line_height) # divide the start location by the height of the line and truncate to an int
+            new_loc = float(args[1])
+            self.append_lines = 0
+            self.current_data_offset = int(new_loc/line_height)-self.TCL_BUFFER_SIZE/2
+            
+            if self.current_data_offset < 0:
+                view_start = self.TCL_MOVETO_YVIEW - float(-self.current_data_offset)/self.TCL_BUFFER_SIZE
+            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data):
+                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data))/self.TCL_BUFFER_SIZE
+            else:
+                view_start = self.TCL_MOVETO_YVIEW
+
             self.redraw() # insert all data
 
-            # Now to a calculation for the position of the cursor
-            new_end = new_start + line_height * display_height
-            self.scroller.set(new_start, new_end)
-            self.prev_start = new_start
+            new_end = new_loc + line_height * display_height
+            self.scroller.set(new_loc, new_end)
+            self.prev_start = new_loc
             
-            view_test_start = float(self.current_data_offset) / self.TCL_BUFFER_SIZE
-            view_test_end = len(self.data) - int(new_start/line_height)
-            # We are going to set our position within the tcl buffer to 0.5
-            if view_test_start < 0.25:
-                view_start = str(view_test_start)
-            else:
-                view_start = str(float(self.TCL_BUFFER_SIZE - view_test_end) / self.TCL_BUFFER_SIZE)
-            print view_start, view_test_start, view_test_end
             if self.context_manager:
                 self.context_manager.yview_moveto(view_start)
             else:
@@ -528,6 +529,14 @@ class Textbox(Text):
         elif args[0] == 'scroll':
             num_pages = int(args[1])
             self.current_data_offset += num_pages * display_height
+
+            if self.current_data_offset < 0:
+                view_start = self.TCL_MOVETO_YVIEW - float(-self.current_data_offset)/self.TCL_BUFFER_SIZE
+            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data):
+                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data))/self.TCL_BUFFER_SIZE
+            else:
+                view_start = self.TCL_MOVETO_YVIEW
+            
             self.redraw()
 
             if self.current_data_offset == len(self.data) - self.TCL_BUFFER_SIZE:
@@ -540,12 +549,6 @@ class Textbox(Text):
             self.scroller.set(new_start, new_end)
             self.prev_start = new_start
             
-            view_test_start = float(self.current_data_offset) / self.TCL_BUFFER_SIZE
-            view_test_end = len(self.data) - int(self.paging_scroll_start/line_height)
-            if view_test_start < self.TCL_MOVETO_YVIEW:
-                view_start = str(view_test_start)
-            else:
-                view_start = str(float(self.TCL_BUFFER_SIZE - view_test_end) / self.TCL_BUFFER_SIZE)
             if self.context_manager:
                 self.context_manager.yview_moveto(view_start)
             else:
