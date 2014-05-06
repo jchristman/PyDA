@@ -2,7 +2,7 @@ from Tkinter import CURRENT
 from tkFont import Font
 
 class WidgetClickContextManager:
-    def __init__(self, app, processing_queue, widget, click_string, tags):
+    def __init__(self, app, processing_queue, widget, separator, click_string, tags):
         self.app = app
         self.processing_queue = processing_queue
         self.separator = separator
@@ -51,4 +51,4 @@ class WidgetClickContextManager:
         for part in line:
             part_type = self.separator + part[0]
             part = part[1:]
-            self.app.addCallback(self.processing_queue, widget.insert, (index, part, self.createTags(part_type)))
+            self.app.addCallback(self.processing_queue, self.widget.insert, (index, part, self.createTags(part_type)))

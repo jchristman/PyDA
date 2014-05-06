@@ -1,6 +1,6 @@
 from Tkinter import Frame, IntVar, END
 from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
-from disassembler.formats.helpers import CommonProgramDisassemblyFormat
+from disassembler.formats.common import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
@@ -128,14 +128,14 @@ class PyDAInterface(Frame):
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbo
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
-                self.app, dis_textbox_context_queue, self.disassembly_textbox,
-                right_click_button, [(PYDA_SECTION, 'darkgreen', self.section_context_menu), 
-                    (PYDA_ADDRESS, 'black', self.address_context_menu),
-                    (PYDA_MNEMONIC, 'blue', None), 
-                    (PYDA_OP_STR, 'darkblue', None), 
-                    (PYDA_COMMENT, 'darkgreen', None), 
-                    (PYDA_GENERIC, 'black', None),
-                    (PYDA_ENDL, 'black', None)])
+                self.app, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
+                right_click_button, [(self.PYDA_SECTION, 'darkgreen', self.section_context_menu), 
+                    (self.PYDA_ADDRESS, 'black', self.address_context_menu),
+                    (self.PYDA_MNEMONIC, 'blue', None), 
+                    (self.PYDA_OP_STR, 'darkblue', None), 
+                    (self.PYDA_COMMENT, 'darkgreen', None), 
+                    (self.PYDA_GENERIC, 'black', None),
+                    (self.PYDA_ENDL, 'black', None)])
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 

@@ -10,6 +10,7 @@ prevent the GUI from blocking.
 from Tkinter import Tk
 from maininterface import PyDAInterface
 from Queue import Queue
+import sys
 
 def build_and_run(settings_manager, disassembler, executor, server):
     '''
@@ -20,9 +21,9 @@ def build_and_run(settings_manager, disassembler, executor, server):
 
     root = RootApplication(settings_manager, disassembler, executor, server)
     try:    app = PyDAInterface(root)
-    except Exception as e: print e.message; root.shutdown(); return
+    except: root.shutdown(); sys.exit()
     try:    root.mainloop()
-    except Exception as e: print e.message; root.shutdown()
+    except Exception as e: root.shutdown()
 
 class RootApplication(Tk):
     '''
