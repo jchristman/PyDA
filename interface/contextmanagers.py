@@ -23,7 +23,6 @@ class WidgetClickContextManager:
     def createTags(self, tag):
         try:
             # These next three lines calculate a UUID for the current chunk of data that we are tagging
-            print self.tag_data[tag]
             uuid = '%s-%i' % (tag, self.tag_data[tag][0])
             self.tag_data[tag][0] += 1
             return tag, uuid
@@ -36,7 +35,7 @@ class WidgetClickContextManager:
             # Get the menu object and set its context equal to the uuid
             menu = self.tag_data[tags[0]][1]
             menu.context = tags[0]
-            menu.post(event.x_root, event.y_root)
+            menu.post(event.x_root + 5, event.y_root + 5)
 
     def addCallback(self, func, args=None, kwargs=None):
         self.app.addCallback(self.processing_queue, func, args, kwargs)

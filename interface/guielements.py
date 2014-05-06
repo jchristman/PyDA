@@ -460,9 +460,6 @@ class Textbox(Text):
             return
 
         if len(self.data) > 0:
-            print start, self.prev_start
-            print start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF,
-            print start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF
             if start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF:
                 self.append_lines = 1
             elif start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF:
