@@ -43,8 +43,14 @@ class SettingsManager(ConfigParser):
         self.set('context', 'pyda-mnemonic', '%(pyda-sep)sM')
         self.set('context', 'pyda-op-str', '%(pyda-sep)sO')
         self.set('context', 'pyda-comment', '%(pyda-sep)sC')
-        self.set('context', 'pyda-generic', '%(pyda-sep)sF')
+        self.set('context', 'pyda-label', '%(pyda-sep)sL')
+        self.set('context', 'pyda-bytes', '%(pyda-sep)sB')
+        self.set('context', 'pyda-generic', '%(pyda-sep)sG')
         self.set('context', 'pyda-endl', '%(pyda-sep)sN')
+
+        self.add_section('disassembly')
+        self.set('disassembly', 'num-opcode-bytes-shown', '5')
+        self.set('disassembly', 'min-string-size', '5')
 
         self.save()
                  

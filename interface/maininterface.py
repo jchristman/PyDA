@@ -23,6 +23,8 @@ class PyDAInterface(Frame):
         self.PYDA_MNEMONIC = self.app.settings_manager.get('context', 'pyda-mnemonic')
         self.PYDA_OP_STR = self.app.settings_manager.get('context', 'pyda-op-str')
         self.PYDA_COMMENT = self.app.settings_manager.get('context', 'pyda-comment')
+        self.PYDA_LABEL = self.app.settings_manager.get('context', 'pyda-label')
+        self.PYDA_BYTES = self.app.settings_manager.get('context', 'pyda-bytes')
         self.PYDA_GENERIC = self.app.settings_manager.get('context', 'pyda-generic')
         self.PYDA_ENDL = self.app.settings_manager.get('context', 'pyda-endl')
         self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
@@ -33,6 +35,8 @@ class PyDAInterface(Frame):
         self.TEXTBOX_BUFFER_HIGH_CUTOFF = self.app.settings_manager.getfloat('gui', 'textbox-buffer-high-cutoff')
         self.TEXTBOX_MOVETO_YVIEW = self.app.settings_manager.getfloat('gui', 'moveto-yview')
         self.TEXTBOX_MAX_LINES_JUMP = self.app.settings_manager.getint('gui', 'max-lines-jump')
+        self.NUM_OPCODE_BYTES_SHOWN = self.app.settings_manager.getint('disassembly','num-opcode-bytes-shown')
+        self.MIN_STRING_SIZE = self.app.settings_manager.getint('disassembly','min-string-size')
 
     def initUI(self):
         self.app.title("PyDA")
@@ -89,9 +93,16 @@ class PyDAInterface(Frame):
                 background="white", borderwidth=1, highlightthickness=1, relief='sunken')
 
         # Set up the data section textbox
+        # self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
+        #         'Data Sections', background="white", borderwidth=1, 
+        #         highlightthickness=1, relief='sunken')
         self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
-                'Data Sections', background="white", borderwidth=1, 
-                highlightthickness=1, relief='sunken')
+                'Data Sections', tcl_buffer_size=self.TEXTBOX_BUFFER_SIZE,
+                tcl_buffer_low_cutoff=self.TEXTBOX_BUFFER_LOW_CUTOFF,
+                tcl_buffer_high_cutoff=self.TEXTBOX_BUFFER_HIGH_CUTOFF,
+                tcl_moveto_yview=self.TEXTBOX_MOVETO_YVIEW,
+                max_lines_jump=self.TEXTBOX_MAX_LINES_JUMP,
+                background="white", borderwidth=1, highlightthickness=1, relief='sunken')
 
         # Set up the output window
         debug_frame = self.bottom_notebook.addFrame('Debug')
@@ -122,15 +133,28 @@ class PyDAInterface(Frame):
         right_click_button = "<Button-2>" if system() == "Darwin" else "<Button-3>"
 
         dis_textbox_context_queue = self.app.createCallbackQueue()
-        # Create a context manager for the disassembly textbo
+        # Create a context manager for the disassembly textbox
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
                 self.app, dis_textbox_context_queue, self.PYDA_SEP, self.disassembly_textbox,
                 right_click_button, self.text_context_right_click,
                 [(self.PYDA_SECTION, 'darkgreen'), (self.PYDA_MNEMONIC, 'blue'), 
-                    (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'), 
+                    (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'),
+                    (self.PYDA_LABEL, 'saddle brown'), (self.PYDA_BYTES, 'dark gray'), 
                     (self.PYDA_GENERIC, 'black'), (self.PYDA_ENDL, 'black')])
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
+
+        dat_textbox_context_queue = self.app.createCallbackQueue()
+        # Create a context manager for the data sections textbox
+        self.data_textbox_context_manager = WidgetClickContextManager(
+                self.app, dat_textbox_context_queue, self.PYDA_SEP, self.data_sections_textbox,
+                right_click_button, self.text_context_right_click,
+                [(self.PYDA_SECTION, 'darkgreen'), (self.PYDA_MNEMONIC, 'blue'), 
+                    (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'),
+                    (self.PYDA_LABEL, 'saddle brown'), (self.PYDA_BYTES, 'dark gray'), 
+                    (self.PYDA_GENERIC, 'black'), (self.PYDA_ENDL, 'black')])
+
+        self.data_sections_textbox.context_manager = self.data_textbox_context_manager
 
         # Redirect stdout to the debug window
         if self.REDIR_STDOUT:
@@ -193,6 +217,10 @@ class PyDAInterface(Frame):
         disassembly = self.app.disassembler.disassemble()
         self.debug('Finished disassembling')
         self.status('Finished disassembling')
+        self.processDisassembly(disassembly)
+        
+
+    def processDisassembly(self, disassembly):
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
             self.debug('Processing Functions')
@@ -201,12 +229,26 @@ class PyDAInterface(Frame):
             self.debug('Processing Strings')
             for string in disassembly.strings:
                 self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end', string.contents))
-            self.debug('Processing Disassembly')
+            self.debug('Processing Executable Sections')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
-            for line,line_func in disassembly.getLines(disassembly.getSectionByName('.text')):
-                data += line
-            self.status('Done')
+            for sec in disassembly.getExecutableSections():
+                data += self.PYDA_ENDL + '\n'
+                data += sec.getSectionInfo() + self.PYDA_ENDL + "\n"
+                for line,line_func in disassembly.getLines(sec, self.NUM_OPCODE_BYTES_SHOWN):
+                    data += line
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
+            self.debug('Processing Data Sections')
+            data = disassembly.program_info + self.PYDA_ENDL + '\n'
+            print [sec.name for sec in disassembly.getDataSections()]
+            for sec in disassembly.getDataSections():
+                data += self.PYDA_ENDL + '\n'
+                data += sec.getSectionInfo() + self.PYDA_ENDL + "\n"
+                for line in disassembly.getDataLines(sec, self.NUM_OPCODE_BYTES_SHOWN):
+                    data += line
+            self.app.addCallback(self.main_queue, self.data_sections_textbox.setData, (data,))
+            self.status('Done')
+
+            
 
     def printStats(self):
         stats = self.app.executor.getProfileStats()

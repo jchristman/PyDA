@@ -1,8 +1,8 @@
 import struct
+from disassembler.formats.helpers.label import Label
 
 class BadMagicHeaderException(Exception):
     pass
-
 
 class CommonProgramDisassemblyFormat:
     def __init__(self, program_info):
@@ -10,17 +10,45 @@ class CommonProgramDisassemblyFormat:
         self.sections = []
         self.functions = []
         self.strings = []
+        self.labels = set()
 
     def addSection(self, section):
         if isinstance(section, CommonSectionFormat):
             if section.flags.execute:
                 section.searchForFunctions()
                 self.functions += section.functions
+                self.addLabelsForFunctions(section.functions)
 
             section.searchForStrings()
             self.strings += section.strings
+            self.addLabelsForStrings(section.strings)
 
             self.sections.append(section.sort())
+
+    def addLabel(self, address, name, window_location=None, xrefs=None):
+        self.labels.add(Label(address, name, window_location, xrefs))
+
+    def addLabelsForStrings(self, strings):
+        for x in strings:
+            self.addLabel(x.address, x.name)
+
+    def addLabelsForFunctions(self, functions):
+        for x in functions:
+            self.addLabel(x.start_address, x.name)
+
+    def printLabels(self):
+        with open("test.out","w+") as f:
+            for l in self.labels:
+                f.write("0x%x - %s\n" % (l.address, l.name))
+
+
+    def findLabelByAddress(self, address):
+        #TODO: Find a more efficient way of doing this
+        return [x for x in self.labels if x.address == address][0]
+
+    def findStringByAddress(self, address):
+        #TODO: Find a more efficient way of doing this
+        return [x for x in self.strings if x.address == address][0]
 
     def getSectionByName(self, name):
         for section in self.sections:
@@ -28,19 +56,73 @@ class CommonProgramDisassemblyFormat:
                 return section
         return None
 
+    def getExecutableSections(self):
+        return [x for x in self.sections if x.flags.execute]
+
+    def getDataSections(self):
+        return [x for x in self.sections if not x.flags.execute]
+
     def sort(self):
         have_instructions = [x for x in self.sections if len(x.instructions) > 0]
         no_instructions = [x for x in self.sections if len(x.instructions) == 0]
         self.sections = sorted(have_instructions, key=lambda x: x.instructions[0].address) + no_instructions
 
-    def getLines(self, section, start=None, end=None):
+    def getLines(self, section, num_opcode_bytes, start=None, end=None):
+        label_addresses = set([label.address for label in self.labels])
         if start is None:
             start = 0
         if end is None:
             end = len(section.instructions)
         for inst in section.instructions[start : end]:
-            data = 'P_S%s: P_A0x%xP_G - P_M%s  P_O%s  P_CP_N\n' % (section.name, inst.address, inst.mnemonic, inst.op_str)
+            data = ''
+            #Check if this is the start of a label
+            if inst.address in label_addresses: 
+                data += 'P_S%s: P_A0x%xP_N\n' % (section.name, inst.address) # Empty newline
+                data += 'P_S%s: P_A0x%xP_L %s P_N\n' % (section.name, inst.address, self.findLabelByAddress(inst.address).name + ":")
+
+            # Write the instruction
+            if inst.comment is not None:
+                data += 'P_S%s: P_A0x%x \t P_B%s \t P_M%s  P_O%s  ; P_C%s P_N\n' % (section.name, inst.address, inst.getByteString(num_opcode_bytes), inst.mnemonic, inst.op_str, inst.comment)
+            else:
+                data += 'P_S%s: P_A0x%x \t P_B%s \t P_M%s  P_O%s P_N\n' % (section.name, inst.address, inst.getByteString(num_opcode_bytes), inst.mnemonic, inst.op_str)
+
             yield data, inst.function
+
+    def getDataLines(self, section, num_opcode_bytes, start=None, end=None):
+        string_addresses = set([string.address for string in self.strings])
+        bytes = section.getBytes()
+        if start is None:
+            start = 0
+        if end is None:
+            end = len(section.bytes) 
+
+        index = start
+        while index < end:
+            data = ''
+            current_addr = index + section.virtual_address
+
+            #If it's a string, mark it as such
+            if current_addr in string_addresses: 
+                # First, write the label
+                data += 'P_S%s: P_A0x%xP_N\n' % (section.name, current_addr) # Empty newline
+                data += 'P_S%s: P_A0x%xP_L %s P_N\n' % (section.name, current_addr, self.findLabelByAddress(current_addr).name + ":")
+
+                # Then, write the string itself
+                the_string = self.findStringByAddress(current_addr)
+                if "\x00" in the_string.contents: # Basic trailing null-byte issue prevention
+                    data += "P_S%s: P_A0x%x \t P_B %s \t P_M db P_C '%s',0 P_N\n" % (section.name, current_addr, the_string.getByteString(num_opcode_bytes), the_string.contents[:-1])
+                else:
+                    data += "P_S%s: P_A0x%x \t P_B %s \t P_M db P_C '%s' P_N\n" % (section.name, current_addr, the_string.getByteString(num_opcode_bytes), the_string.contents)
+                
+                index += len(the_string.contents)
+
+            #Otherwise, just mark it as a byte
+            else:
+                byte = bytes[index].encode("hex")
+                data += "P_S%s: P_A0x%x \t P_B %s \t P_M db P_C '%s' P_N\n" % (section.name, current_addr, byte, byte)
+                index += 1
+
+            yield data
 
     def serialize(self):
         self.sort()
@@ -56,7 +138,6 @@ class CommonProgramDisassemblyFormat:
             for inst in section.instructions:
                 if not section.flags.execute:
                     continue
-
                 try:
                     if not func_started and inst.address == section.functions[current_func_index].start_address:
                         func_started = True
@@ -173,6 +254,24 @@ class CommonSectionFormat:
         else:
             return self.bytes
 
+    def getSectionInfo(self):
+        fields = {
+            "Section name": self.name,
+            "Properties": str(self.flags),
+            "Starting Address" : "0x%x" % self.virtual_address,
+            "Number of Functions": str(len(self.functions)),
+            "Size": str(len(self.getBytes())) + " bytes",
+        }
+
+        max_length = max(len(x) + len(fields[x]) for x in fields) + 2
+
+        section_info = "#"*(max_length+3) + "\n"
+        section_info += "   SECTION START\n"
+        for x in fields:
+            section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
+        section_info += "#"*(max_length+3) + "\n"
+
+        return section_info
 
 class CommonFunctionFormat:
     def __init__(self, start_inst_index, end_inst_index, name, parent_section):
@@ -186,9 +285,15 @@ class CommonFunctionFormat:
 
 
 class CommonInstFormat:
-    def __init__(self, address, mnemonic, op_str, bytes):
+    def __init__(self, address, mnemonic, op_str, bytes, comment=None):
         self.address = address
         self.mnemonic = mnemonic
         self.op_str = op_str
         self.bytes = bytes
         self.function = None
+        self.comment = comment
+
+    def getByteString(self, num_bytes):
+        string_size = num_bytes*3
+        unpadded = str(self.bytes).encode("hex")[0:num_bytes*2]
+        return ' '.join([unpadded[x:x+2] for x in xrange(0, len(unpadded), 2)]).ljust(string_size)

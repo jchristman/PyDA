@@ -11,3 +11,14 @@ class Flags:
         self.read = "r" in flags.lower()
         self.write = "w" in flags.lower()
         self.execute = "x" in flags.lower()
+
+    def __str__(self):
+    	properties = []
+    	if self.read:
+    		properties.append("READ")
+    	if self.write:
+    		properties.append("WRITE")
+    	if self.execute:
+    		properties.append("EXECUTE")
+
+    	return "/".join(properties)
