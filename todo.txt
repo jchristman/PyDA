@@ -1,140 +1,32 @@
-* Come up with functionality in the data structure for data sections instead of code sections. This involves figuring out how to differentiate between data types (strings, ints, arrays, etc). We can come up with a way of finding references to the data structures later. This will let us populate the strings and the data sections tabs of the GUI.
-	** ida includes optimization: "create ascii string if data xref exists"
-	* String format:
-		Address - .text:0043E53E
-		Length - 8 digits, in hex
-		Type - (we only support c strings so don't worry about it)
-		String - The actual string
-		** See notes for display in data section disassembly
-	*STATUS: done with string finding - still need to figure out how to rep other data
-
-Notes: Data sections disassembly
-	* Everything stored as actual code
-		** Identify strings by testing ascii range and min length (4) with terminating 0
-			*** make a config to specify min length
-		** Identify code refs by testing ?-endian unpack of WORD/DWORD blocks and seeing if it falls in a virtual address of code
-		** Everything else is just a byte: 		db 	10h
-	* Strings
-		** string_name		db 'string_name_here',0
-	* Data that refs code uses location name
-		** off_46e038		dd offset loc_401813
-
-
-* Retrieve more things to go into the program info section
-	** Things:
-		*** Input md5, filename, format, imagebase
-	** Entry point would be good (system and program)
-	** PRIORITY: low
-	** DIFFICULTY: easy
-	** PREREQS: None
-	** STATUS: DONE
-
-* Convert WORD, etc. to ctypes equivalents
-	** PRIORITY: low
-	** DIFFICULTY: easy
-	** PREREQS: None
-	** STATUS: DONE - Mitigated 
-
-
-
-* Retrieve more info for each section
-	** Section name, virtual address, virtual size, section size in file, offset to raw data for section, flags, alignment
-	** PRIORITY: low
-	** DIFFICULTY: medium - may require some restructuring
-	** PREREQS: None
-	** STATUS: not started
-
-* Correlating functions/string names to their code
-	** PRIORITY: high
-	** DIFFICULTY: med-high - will require restructuring
-	** PREREQS: None
-	** INFO: Addresses are already there - should only need to work on window movement
-	** STATUS: not started
-
-* Renaming functions/string names
-	** PRIORITY: high
-	** DIFFICULTY: med-high - will require restructuring
-	** PREREQS: None
-	** INFO: May take some work to actually correlate names with their disassembly text. Maybe change it to print the function object rather than the instruction. Then the function's __str__ can change itself as necessary
-	** STATUS: not started 
-
-* Commenting
-	** PRIORITY: high
-	** DIFFICULTY: easy-med - may require some extra data fields
-	** PREREQS: None
-	** INFO: Need an extra "comment" field for each line in the disassembly. Also need to track key presses and look for ":" or ";"
-	** STATUS: not started
-
-* Convert from int/hex/char
-	** PRIORITY: low
-	** DIFFICULTY: easy-med - may require some extra data fields
-	** PREREQS: None
-	** INFO: Need to know that the value we're clicking on is an immediate
-	** STATUS: not started
-
-* Implement FLIRT (FLYRT)...: https://www.hex-rays.com/products/ida/tech/flirt/in_depth.shtml
-	** PRIORITY: med
-	** DIFFICULTY: muy, muy dificil
-	** PREREQS: None
-	** INFO: If we can use IDA's sig files, that would be great. Otherwise, it's going to be a lot of busy work. 
-	** STATUS: not started...
-
-* Insert debug symbols
-	** PRIORITY: med
-	** DIFFICULTY: hard
-	** PREREQS: None
-	** INFO: Going to take a fair amount of understanding based on file format and debug symbol format. Will probably take significant work
-	** STATUS: not started
-
-* Find xrefs for funcs/strings
-	** PRIORITY: med
-	** DIFFICULTY: med
-	** PREREQS: None
-	** STATUS: not started
-
-* Implement saving via pydb (pickle)
-	** PRIORITY: low
-	** DIFFICULTY: easy
-	** PREREQS: Something worth saving - comments or renaming
-	** STATUS: not started
-
-* Implement searching (bytes, opcode, text, immediate, comment, etc.)
-	** PRIORITY: low
-	** DIFFICULTY: med - several modes to support
-	** PREREQS: None
-	** STATUS: not started
-
-* Patching
-	** PRIORITY: low
-	** DIFFICULTY: med
-	** PREREQS: None
-	** INFO: Fairly simple to implement if the user just gives an address range and the bytes to put there. Capstone doesn't actually go opcode-to-hex, so it's up to the user to know what they want to compile.
-	** STATUS: not started
-
-* Vulnerability Searching
-	** PRIORITY: low - enhancement that would be nice for ctfs
-	** DIFFICULTY: med
-	** PREREQS: None
-	** INFO: I thought this would be cool as a plugin (the first of many). I forsee it two ways: 1. The plugin keeps a list of known vulnerable functions and makes a list of them and their locations for futher investigation. 2. The plugin has a list of functions that it knows return input from a user (gets/socket/etc.) and similarly reports them for further investigation.
-	** STATUS: not started
+Disassembly model: (can be commondisassemblyformat)
+disass model has a set of labels
+print a section
+at each address, look in labels to see if this point is a label
+if so, print an extra space before
+then the label
+then the actual instruction at that position
 
 
 
 
+Label:
+	address
+	name
+	window_location -> set when data is created
+	(xrefs)
+
+Function:
+	needs a label -> pass one by reference
+	double-click function -> look up label -> go to window_location in label
+
+String:
+	same as function
 
 
-* Later (ideas stolen from ida):
-	** implement recursive traversal vs linear sweep
-	** delete instructions with no xrefs
-	** for each "call loc_1234", mark 1234 as the start of a function
-	** convert jump labels to function-relative-offsets
-	** convert immediate operand of 'push' to offset
-	** convert immediate operant of 'mov reg, ...' to offset
-	** convert immediate operand of 'mov memory, ...' to offset
-	** separate window for imports
-	** separate window for exports 
-	** separate window for segment information
-		*** name, start, end, rwx, base, class (code/data/bss), (those are the useful ones)
-	** convert to instruction / data
-	** convert trailing nops on functions/data to "align 10h" or something
-	** anything that's xrefed gets a rename-able loc_12345678 label 
+
+Design decision:
+	Do we want to keep everything coupled to the common disassembly format or are we just manipulating text?
+	Two options for implementing commenting:
+		1) Attach it to the end of the current line in 'data'
+		2) Make an actual field in CommonInstFormat
+			a. Requires that we can go from the current selected text back to the CIF that generated it

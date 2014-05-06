@@ -375,7 +375,7 @@ class Textbox(Text):
         self.reset()
 
     def reset(self):
-        self.data = [] # It's an array of lines
+        self.data = [] # It's a list of lines
         self.current_data_offset = 0
         self.prev_start = 0.0
         self.append_lines = 0
