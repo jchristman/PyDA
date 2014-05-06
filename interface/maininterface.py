@@ -28,6 +28,11 @@ class PyDAInterface(Frame):
         self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
         self.DEBUG = self.app.settings_manager.getint('debugging', 'debug-on')
         self.PROFILE = self.app.settings_manager.getint('debugging', 'profiler-on')
+        self.TEXTBOX_BUFFER_SIZE = self.app.settings_manager.getint('gui', 'textbox-buffer-size')
+        self.TEXTBOX_BUFFER_LOW_CUTOFF = self.app.settings_manager.getfloat('gui', 'textbox-buffer-low-cutoff')
+        self.TEXTBOX_BUFFER_HIGH_CUTOFF = self.app.settings_manager.getfloat('gui', 'textbox-buffer-high-cutoff')
+        self.TEXTBOX_MOVETO_YVIEW = self.app.settings_manager.getfloat('gui', 'moveto-yview')
+        self.TEXTBOX_MAX_LINES_JUMP = self.app.settings_manager.getint('gui', 'max-lines-jump')
 
     def initUI(self):
         self.app.title("PyDA")
@@ -43,8 +48,6 @@ class PyDAInterface(Frame):
         self.toolbar = ToolBar(self.app, 'top')
         self.toolbar.addButton('Import', self.importFile, 'left')
         self.toolbar.addButton('Share', self.share, 'right')
-        if self.PROFILE:
-            self.toolbar.addButton('Print Profile Stats', self.printStats, 'right')
         
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
@@ -78,8 +81,12 @@ class PyDAInterface(Frame):
 
         # Set up the disassembly textbox
         self.disassembly_textbox = self.right_notebook.addTextboxWithScrollbar(
-                'Disassembly', background="white", borderwidth=1, 
-                highlightthickness=1, relief='sunken')
+                'Disassembly', tcl_buffer_size=self.TEXTBOX_BUFFER_SIZE,
+                tcl_buffer_low_cutoff=self.TEXTBOX_BUFFER_LOW_CUTOFF,
+                tcl_buffer_high_cutoff=self.TEXTBOX_BUFFER_HIGH_CUTOFF,
+                tcl_moveto_yview=self.TEXTBOX_MOVETO_YVIEW,
+                max_lines_jump=self.TEXTBOX_MAX_LINES_JUMP,
+                background="white", borderwidth=1, highlightthickness=1, relief='sunken')
 
         # Set up the data section textbox
         self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(

@@ -23,6 +23,9 @@ class WidgetClickContextManager:
         except:
             return '',''
 
+    def addCallback(self, func, args=None, kwargs=None):
+        self.app.addCallback(self.processing_queue, func, args, kwargs)
+
     def clearQueue(self):
         with self.processing_queue.mutex:
             self.processing_queue.queue.clear()
