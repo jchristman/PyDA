@@ -555,3 +555,10 @@ class Textbox(Text):
                 self.yview_moveto(view_start)
         else:
             print args
+
+class ContextMenu(Menu):
+    context = None
+    def __init__(self, label_command_pairs):
+        Menu.__init__(self, tearoff=0)
+        for label, command in label_command_pairs:
+            self.add_command(label=label, command=command)

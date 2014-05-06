@@ -2,26 +2,41 @@ from Tkinter import CURRENT
 from tkFont import Font
 
 class WidgetClickContextManager:
-    def __init__(self, app, processing_queue, separator, widget, click_string, callback, tags):
+    def __init__(self, app, processing_queue, widget, click_string, tags):
         self.app = app
         self.processing_queue = processing_queue
         self.separator = separator
         self.widget = widget
-        self.callback = callback
+        self.click_string = click_string
         self.processing_queue = processing_queue
 
         self.tag_data = {}
-        for tag,foreground in tags:
-            self.addTagToBindings(tag, self.click_callback, foreground, click_string)
+        for tag, foreground, context_menu in tags:
+            self.addTagToBindings(tag, foreground, context_menu, self.click_callback)
+
+    def addTagToBindings(self, tag, foreground, context_menu, callback):
+        self.widget.tag_config(tag, foreground=foreground)
+        if context_menu:
+            self.widget.tag_bind(tag, self.click_string, callback)
+        self.tag_data[tag] = [0, context_menu]
 
     def createTags(self, tag):
         try:
             # These next three lines calculate a UUID for the current chunk of data that we are tagging
-            uuid = '%s-%i' % (tag, self.tag_data[tag])
-            self.tag_data[tag] += 1
+            print self.tag_data[tag]
+            uuid = '%s-%i' % (tag, self.tag_data[tag][0])
+            self.tag_data[tag][0] += 1
             return tag, uuid
         except:
             return '',''
+    
+    def click_callback(self, event):
+        tags = self.widget.tag_names(CURRENT)
+        if len(tags) > 1:
+            # Get the menu object and set its context equal to the uuid
+            menu = self.tag_data[tags[0]][1]
+            menu.context = tags[0]
+            menu.post(event.x_root, event.y_root)
 
     def addCallback(self, func, args=None, kwargs=None):
         self.app.addCallback(self.processing_queue, func, args, kwargs)
@@ -36,17 +51,4 @@ class WidgetClickContextManager:
         for part in line:
             part_type = self.separator + part[0]
             part = part[1:]
-            self.app.addCallback(self.processing_queue, self.widget.insert, (index, part, self.createTags(part_type)))
-
-    def yview_moveto(self, index):
-        self.app.addCallback(self.processing_queue, self.widget.yview_moveto, (index,))
-
-    def addTagToBindings(self, tag, callback, foreground, click_string):
-        self.widget.tag_config(tag, foreground=foreground)
-        self.widget.tag_bind(tag, click_string, callback)
-        self.tag_data[tag] = 0
-
-    def click_callback(self, event):
-        for uuid in self.widget.tag_names(CURRENT)[1:]:
-            self.callback(uuid)
-            return
+            self.app.addCallback(self.processing_queue, widget.insert, (index, part, self.createTags(part_type)))

@@ -1,6 +1,6 @@
-from Tkinter import Frame, StringVar, IntVar, END, OptionMenu
-from guielements import MenuBar, ToolBar, PanedWindow
-from disassembler.formats.common import CommonProgramDisassemblyFormat
+from Tkinter import Frame, IntVar, END
+from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
+from disassembler.formats.helpers import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
@@ -114,6 +114,10 @@ class PyDAInterface(Frame):
         self.chat_entry = chat_frame_2.addEntryWithLabel(
                 'Send:', 'bottom', 'x', True, background='white', 
                 borderwidth=1, highlightthickness=1, relief='sunken')
+
+        # Set up the context menus
+        self.section_context_menu = ContextMenu([('Copy', self.copyString)])
+        self.address_context_menu = ContextMenu([('Copy String', self.copyString), ('Copy Value', self.copyValue)])
         
         # Force the mouse to always have focus
         self.tk_focusFollowsMouse()
@@ -124,18 +128,21 @@ class PyDAInterface(Frame):
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbo
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
-                self.app, dis_textbox_context_queue, self.PYDA_SEP, self.disassembly_textbox,
-                right_click_button, self.text_context_right_click,
-                [(self.PYDA_SECTION, 'darkgreen'), (self.PYDA_MNEMONIC, 'blue'), 
-                    (self.PYDA_OP_STR, 'darkblue'), (self.PYDA_COMMENT, 'darkgreen'), 
-                    (self.PYDA_GENERIC, 'black'), (self.PYDA_ENDL, 'black')])
+                self.app, dis_textbox_context_queue, self.disassembly_textbox,
+                right_click_button, [(PYDA_SECTION, 'darkgreen', self.section_context_menu), 
+                    (PYDA_ADDRESS, 'black', self.address_context_menu),
+                    (PYDA_MNEMONIC, 'blue', None), 
+                    (PYDA_OP_STR, 'darkblue', None), 
+                    (PYDA_COMMENT, 'darkgreen', None), 
+                    (PYDA_GENERIC, 'black', None),
+                    (PYDA_ENDL, 'black', None)])
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
         # Redirect stdout to the debug window
         if self.REDIR_STDOUT:
             sys.stdout = StdoutRedirector(self.stdoutMessage)
-        self.debug("Stdout is being redirected to here")
+            print "Stdout is being redirected to here"
 
     def centerWindow(self):
         height = self.app.winfo_screenheight() * 5/6
@@ -143,12 +150,6 @@ class PyDAInterface(Frame):
         x = (self.app.winfo_screenwidth() - width)/2
         y = (self.app.winfo_screenheight() - height)/2
         self.app.geometry('%dx%d+%d+%d' % (width, height, x, y))
-
-    def text_context_right_click(self, text_tag):
-        self.debug('Right clicked %s' % text_tag)
-        string_var = StringVar()
-        context_menu = OptionMenu(self.app, string_var, 'Test 1', 'Test 2', 'Test 3')
-        context_menu.pack()
 
     def stdoutMessage(self, message):
         self.debug_textbox.appendData(message, True)
@@ -163,9 +164,6 @@ class PyDAInterface(Frame):
         if self.DEBUG:
             print message + '\n',
 
-    def contextMenu(self, e):
-        print vars(e)
-
     def onError(self):
         tkMessageBox.showerror("Error", "Could not determine file type from magic header.")
 
@@ -175,6 +173,12 @@ class PyDAInterface(Frame):
     def onExit(self):
         print 'Shutting down'
         self.app.shutdown()
+
+    def copyString(self):
+        print 'Copy String Selected'
+
+    def copyValue(self):
+        print 'Copy Value Selected'
 
     def importFile(self):
         dialog = tkFileDialog.Open(self)

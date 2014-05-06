@@ -20,9 +20,9 @@ def build_and_run(settings_manager, disassembler, executor, server):
 
     root = RootApplication(settings_manager, disassembler, executor, server)
     try:    app = PyDAInterface(root)
-    except: root.shutdown(); exit()
+    except Exception as e: print e.message; root.shutdown(); return
     try:    root.mainloop()
-    except: root.shutdown()
+    except Exception as e: print e.message; root.shutdown()
 
 class RootApplication(Tk):
     '''
