@@ -1,6 +1,6 @@
 from Tkinter import Frame, IntVar, END
 from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
-from disassembler.formats.common import CommonProgramDisassemblyFormat
+from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
@@ -245,35 +245,26 @@ class PyDAInterface(Frame):
         self.status('Finished disassembling')
         self.processDisassembly(disassembly)
         
-
     def processDisassembly(self, disassembly):
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
             self.debug('Processing Functions')
-            for function in disassembly.functions:
-                self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end', function.name))
+            #for function in disassembly.functions:
+            #    self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end', function.name))
+
             self.debug('Processing Strings')
-            for string in disassembly.strings:
-                self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end', string.contents))
+            #for string in disassembly.strings:
+            #    self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end', string.contents))
+
             self.debug('Processing Executable Sections')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
-            for sec in disassembly.getExecutableSections():
-                data += self.PYDA_ENDL + '\n'
-                data += sec.getSectionInfo() + self.PYDA_ENDL + "\n"
-                for line,line_func in disassembly.getLines(sec, self.NUM_OPCODE_BYTES_SHOWN):
-                    data += line
-
-            self.app.addCallback(self.main_queue, self.disassembly_textbox.setData, (data,))
+            ex_secs = disassembly.getExecutableSections() # Get the data model for the textbox
+            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (ex_secs,))
 
             self.debug('Processing Data Sections')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
-            for sec in disassembly.getDataSections():
-                data += self.PYDA_ENDL + '\n'
-                data += sec.getSectionInfo() + self.PYDA_ENDL + "\n"
-                for line in disassembly.getDataLines(sec, self.NUM_OPCODE_BYTES_SHOWN):
-                    data += line
-
-            self.app.addCallback(self.main_queue, self.data_sections_textbox.setData, (data,))
+            data_secs = disassembly.getDataSections() # Get the data model for the textbox
+            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (data_secs,))
             self.status('Done')
 
             

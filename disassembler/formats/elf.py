@@ -1,8 +1,10 @@
 import capstone
-from common import *
+from disassembler.formats.common.program import CommonProgramDisassemblyFormat
+from disassembler.formats.common.section import CommonSectionFormat
+from disassembler.formats.common.inst import CommonInstFormat
+from disassembler.formats.helpers.exceptions import BadMagicHeaderException
 from disassembler.formats.helpers.flags import Flags
 from struct import unpack
-import pdb
 
 BYTE = 1    # 8 bits
 HWORD = 2   # 16 bits
@@ -99,22 +101,21 @@ class ELF:
 
         self.sections.sort(key=lambda i: i.sh_offset)
 
-    def disassemble(self):
+    def disassemble(self, settings_manager):
         md = capstone.Cs(self.arch, self.bin_class)
-        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo())
-        
+        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo(), settings_manager)
         for s in self.sections:
             section = None
             sCODE = self.binary[s.sh_offset : s.sh_offset + s.sh_size]
             if s.sh_name_string in ELF.dont_disassemble:
-                section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
+                section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
             else:
-                section = CommonSectionFormat(s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate
+                section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate
                 
                 # linear sweep (for now)
                 for inst in md.disasm(sCODE, s.sh_addr):
                     section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
-            
+
             disassembly.addSection(section)
         return disassembly
 

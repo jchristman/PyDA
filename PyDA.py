@@ -12,7 +12,7 @@ class PyDA:
         max_workers = settings_manager.getint('application', 'max-workers') # Get the max workers from settings manager
         profiler_on = settings_manager.getint('debugging', 'profiler-on') # Get whether there is a profiler
         executor = ThreadPoolExecutor(max_workers=max_workers, profiler_on=profiler_on) # Set up the thread executor
-        dis = Disassembler() # Build the disassembler
+        dis = Disassembler(settings_manager) # Build the disassembler
         server = PyDAServer('0.0.0.0',9000) # Set up the PyDA server
         if profiler_on:
             profile = Profile()

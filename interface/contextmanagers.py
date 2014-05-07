@@ -51,3 +51,7 @@ class WidgetClickContextManager:
             part_type = self.separator + part[0]
             part = part[1:]
             self.app.addCallback(self.processing_queue, self.widget.insert, (index, part, self.createTags(part_type)))
+
+    def yview_moveto(self, index):
+        self.app.addCallback(self.processing_queue, self.widget.yview_moveto, (index,))
+

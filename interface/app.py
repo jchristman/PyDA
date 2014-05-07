@@ -18,12 +18,23 @@ def build_and_run(settings_manager, disassembler, executor, server):
     disassembler - the PyDA disassembler class that contains methods for GUI operations
     server - the PyDA server that will be used for multiplayer work
     '''
-
     root = RootApplication(settings_manager, disassembler, executor, server)
+    print 'Building app'
     try:    app = PyDAInterface(root)
-    except: root.shutdown(); sys.exit()
+    except Exception as e:
+        print 'Exception in building interface!\n',e.message
+        root.shutdown()
+        sys.exit()
+    except:
+        root.shutdown()
+        sys.exit()
+    print 'Running mainloop'
     try:    root.mainloop()
-    except: root.shutdown()
+    except Exception as e:
+        print 'Exception in mainloop!\n',e.message
+        root.shutdown()
+    except:
+        root.shutdown()
     print 'Exiting'
 
 class RootApplication(Tk):
@@ -39,7 +50,7 @@ class RootApplication(Tk):
     '''
     def __init__(self, settings_manager, disassembler, executor, server):
         Tk.__init__(self)
-        Tk.CallWrapper = RootApplication.AppCallWrapper
+        Tk.CallWrapper = AppCallWrapper
         self.settings_manager = settings_manager
         self.disassembler = disassembler
         self.executor = executor
@@ -89,26 +100,25 @@ class RootApplication(Tk):
         self.shutdown()
 
     def shutdown(self):
+        print 'Shutting down'
         self.executor.shutdown()
         self.quit()
 
-    class AppCallWrapper:
-        def __init__(self, func, subst, widget):
-            self.func = func
-            self.subst = subst
-            self.widget = widget
+class AppCallWrapper:
+    def __init__(self, func, subst, widget):
+        self.func = func
+        self.subst = subst
+        self.widget = widget
 
-        def __call__(self, *args):
-            try: 
-                if self.subst: 
-                    args = apply(self.subst, args) 
-                    return apply(self.func, args) 
-            except KeyboardInterrupt:
-                raise KeyboardInterrupt
-            except SystemExit, msg:
-                raise SystemExit, msg
-            except Exception as e:
-                raise Exception
+    def __call__(self, *args):
+        try: 
+            if self.subst: 
+                args = apply(self.subst, args) 
+            return apply(self.func, args) 
+        except KeyboardInterrupt:
+            raise
+        except SystemExit, msg:
+            raise SystemExit, msg
 
 if __name__ == '__main__':
     build_and_run()

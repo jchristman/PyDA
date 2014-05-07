@@ -362,7 +362,7 @@ class Frame(fm):
         return textbox
 
 class Textbox(Text):
-    def __init__(self, parent, context_manager=None, tcl_buffer_size=100, tcl_buffer_low_cutoff=0.25,
+    def __init__(self, parent, data_model=None, context_manager=None, tcl_buffer_size=100, tcl_buffer_low_cutoff=0.25,
                  tcl_buffer_high_cutoff=0.75, tcl_moveto_yview=0.50, max_lines_jump=10, **kwargs):
         Text.__init__(self, parent, **kwargs)
         self.scroller = None
@@ -373,9 +373,9 @@ class Textbox(Text):
         self.TCL_MOVETO_YVIEW = tcl_moveto_yview
         self.MAX_LINES_JUMP = max_lines_jump
         self.reset()
+        self.data_model = data_model
 
     def reset(self):
-        self.data = [] # It's a list of lines
         self.current_data_offset = 0
         self.prev_start = 0.0
         self.append_lines = 0
@@ -383,14 +383,14 @@ class Textbox(Text):
         self.neg_to_pos = False
         self.paging_scroll_start = 0
 
-    def setData(self, data):
+    def setDataModel(self, data_model):
         self.reset()
-        self.data = [x + '\n' for x in data.split('\n') if len(x) > 0]
+        self.data_model = data_model
         self.redraw()
 
     def appendData(self, data, moveto_end=False):
-        self.data.append(data)
-        self.insertBottomLine(len(self.data) - 1)
+        self.data_model.append(data)
+        self.insertBottomLine(self.data_model.get(len(self.data_model) - 1, len(self.data_model)))
         if moveto_end:
             if self.context_manager:
                 self.context_manager.yview_moveto('1.0')
@@ -405,8 +405,8 @@ class Textbox(Text):
     def redraw(self):
         num_lines = self.TCL_BUFFER_SIZE
         end_index = self.current_data_offset + num_lines
-        if end_index > len(self.data):
-            end_index = len(self.data)
+        if end_index > len(self.data_model):
+            end_index = len(self.data_model)
             self.current_data_offset = end_index - num_lines
             if self.current_data_offset < 0:
                 self.current_data_offset = 0
@@ -416,22 +416,20 @@ class Textbox(Text):
         self.drawLines()
 
     def drawLines(self):
-        for i in xrange(self.TCL_BUFFER_SIZE):
-            self.insertBottomLine(self.current_data_offset + i)
+        for line in self.data_model.get(self.TCL_BUFFER_SIZE):
+            self.insertBottomLine(line)
 
-    def insertTopLine(self, line_index):
-        if 0 <= line_index < len(self.data):
-            if self.context_manager:
-                self.context_manager.insert(START, self.data[line_index])
-            else:
-                self.insert(START, self.data[line_index])
+    def insertTopLine(self, line):
+        if self.context_manager:
+            self.context_manager.insert(START, line)
+        else:
+            self.insert(START, line)
 
-    def insertBottomLine(self, line_index):
-        if 0 <= line_index < len(self.data):
-            if self.context_manager:
-                self.context_manager.insert('end', self.data[line_index])
-            else:
-                self.insert('end', self.data[line_index])
+    def insertBottomLine(self, line):
+        if self.context_manager:
+            self.context_manager.insert('end', line)
+        else:
+            self.insert('end', line)
 
     def deleteBottomLine(self):
         if self.context_manager:
@@ -459,7 +457,7 @@ class Textbox(Text):
             self.prev_start = start
             return
 
-        if len(self.data) > 0:
+        if self.data_model:
             if start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF:
                 self.append_lines = 1
             elif start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF:
@@ -469,19 +467,20 @@ class Textbox(Text):
 
             lines_to_update = self.TCL_BUFFER_SIZE/4
             if self.append_lines == 1:
-                if self.current_data_offset + self.TCL_BUFFER_SIZE < len(self.data):
+                end = self.current_data_offset + self.TCL_BUFFER_SIZE
+                if end < len(self.data_model):
                     if self.neg_to_pos: # for some reason, when we are deleting bottom lines, the trailing \n gets lost
                         self.insert('end', '\n')
                         self.neg_to_pos = False
-                    for i in xrange(lines_to_update):
-                        self.insertBottomLine(self.current_data_offset + self.TCL_BUFFER_SIZE + i)
+                    for line in self.data_model.get(self.current_data_offset, self.current_data_offset + lines_to_update):
+                        self.insertBottomLine(line)
                     self.deleteTopLine()
                     self.current_data_offset += lines_to_update
                     self.append_lines = 0
             elif self.append_lines == -1:
                 if self.current_data_offset > 0:
-                    for i in xrange(lines_to_update):
-                        self.insertTopLine(self.current_data_offset - 1 - i)
+                    for line in self.data_model.get(self.current_data_offset - 1, self.current_data_offset - lines_to_update - 1):
+                        self.insertTopLine(line)
                     self.deleteBottomLine()
                     self.current_data_offset -= lines_to_update
                     self.append_lines = 0
@@ -492,14 +491,14 @@ class Textbox(Text):
             self.scroller.set(*args)
 
     def _calcscroller(self):
-        line_height = 1.0 / len(self.data)
+        line_height = 1.0 / len(self.data_model)
         display_lines = line_height * self.cget('height')
-        start = self.prev_start * self.TCL_BUFFER_SIZE / len(self.data) + self.current_data_offset * line_height
+        start = self.prev_start * self.TCL_BUFFER_SIZE / len(self.data_model) + self.current_data_offset * line_height
         end = start + display_lines
         return str(start),str(end)
 
     def changeView(self, *args):
-        line_height = (1.0 / len(self.data))
+        line_height = (1.0 / len(self.data_model))
         display_height = self.cget('height')
         if args[0] == 'moveto':
             new_loc = float(args[1])
@@ -508,8 +507,8 @@ class Textbox(Text):
             
             if self.current_data_offset < 0:
                 view_start = self.TCL_MOVETO_YVIEW - float(-self.current_data_offset)/self.TCL_BUFFER_SIZE
-            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data):
-                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data))/self.TCL_BUFFER_SIZE
+            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data_model):
+                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data_model))/self.TCL_BUFFER_SIZE
             else:
                 view_start = self.TCL_MOVETO_YVIEW
 
@@ -529,19 +528,19 @@ class Textbox(Text):
 
             if self.current_data_offset < 0:
                 view_start = self.TCL_MOVETO_YVIEW - float(-self.current_data_offset)/self.TCL_BUFFER_SIZE
-            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data):
-                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data))/self.TCL_BUFFER_SIZE
+            elif self.current_data_offset + self.TCL_BUFFER_SIZE >= len(self.data_model):
+                view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - len(self.data_model))/self.TCL_BUFFER_SIZE
             else:
                 view_start = self.TCL_MOVETO_YVIEW
             
             self.redraw()
 
-            if self.current_data_offset == len(self.data) - self.TCL_BUFFER_SIZE:
+            if self.current_data_offset == len(self.data_model) - self.TCL_BUFFER_SIZE:
                 self.paging_scroll_start += display_height
             else:
                 self.paging_scroll_start = self.current_data_offset
 
-            new_start = float(self.paging_scroll_start) / (len(self.data) - self.TCL_BUFFER_SIZE)
+            new_start = float(self.paging_scroll_start) / (len(self.data_model) - self.TCL_BUFFER_SIZE)
             new_end = new_start + line_height * display_height
             self.scroller.set(new_start, new_end)
             self.prev_start = new_start

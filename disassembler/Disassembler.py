@@ -2,6 +2,9 @@ from settings import *
 # import traceback
 
 class Disassembler:
+    def __init__(self, settings_manager):
+        self.settings_manager = settings_manager
+
     def load(self, binary, filename = None):
         self.binary = binary
         for format in IMPORTED_FORMATS:
@@ -19,7 +22,7 @@ class Disassembler:
         return self.dis.FILETYPE_NAME
 
     def disassemble(self):
-        return self.dis.disassemble()
+        return self.dis.disassemble(self.settings_manager)
 
 class UnsupportedBinaryFormatException(Exception):
     pass

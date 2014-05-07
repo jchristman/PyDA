@@ -1,5 +1,5 @@
 from capstone import *
-from disassembler.formats.common import CommonInstFormat
+from disassembler.formats.common.inst import CommonInstFormat
 
 prologues = {}
 epilogues = {}
@@ -26,6 +26,8 @@ epilogues[CS_ARCH_X86] = {
         # [CommonInstFormat(None, 'leave', '', ''), CommonInstFormat(None, 'ret', 'WILDCARD', '')], # STDCALL
         [CommonInstFormat(None, 'ret', '', '')],
         [CommonInstFormat(None, 'ret', 'WILDCARD', '')], # Really, every function ends with a ret
+        [CommonInstFormat(None, 'hlt', '', '')],
+        [CommonInstFormat(None, 'rep ret', '', '')],
     ],
     CS_MODE_32 : [
         # [CommonInstFormat(None, 'pop', 'ebp', ''), CommonInstFormat(None, 'ret', '', '')], # CDECL/FASTCALL

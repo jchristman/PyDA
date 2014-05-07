@@ -30,11 +30,11 @@ class ThreadPoolExecutor:
             while not self.shut_down:
                 while not self.function_queue.empty():
                     try:    self.do_work(self.function_queue.get(False), profile)
-                    except: pass
+                    except: raise
                     if self.shut_down: raise ShutdownException
                 self.activate_worker.wait()
-        except Exception:
-            pass
+        except ShutdownException: pass
+        except: raise
         self.activate_worker.release()
 
     def do_work(self, args, profile):

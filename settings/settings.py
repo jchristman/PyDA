@@ -23,6 +23,7 @@ class SettingsManager(ConfigParser):
         self.add_section('debugging')
         self.set('debugging', 'redirect-stdout', '1')
         self.set('debugging', 'profiler-on', '0')
+        self.set('debugging', 'debug-on', '0')
 
         self.add_section('application')
         self.set('application', 'queue-process-amount', '7000')
