@@ -78,10 +78,14 @@ class PyDAInterface(Frame):
                 'Functions', background='white', borderwidth=1, 
                 highlightthickness=1, relief='sunken')
 
+        self.functions_listbox.bind('<Double-Button-1>', self.functionDoubleClick)
+
         # Set up the strings listbox
         self.strings_listbox = self.left_notebook.addListboxWithScrollbar(
                 'Strings', background='white', borderwidth=1, 
                 highlightthickness=1, relief='sunken')
+
+        self.strings_listbox.bind('<Double-Button-1>', self.stringDoubleClick)
 
         # Set up the disassembly textbox
         self.disassembly_textbox = self.right_notebook.addTextboxWithScrollbar(
@@ -209,6 +213,18 @@ class PyDAInterface(Frame):
 
     def copyValue(self, *args):
         print 'Copy Value Selected', args
+
+    def functionDoubleClick(self, event):
+        widget = event.widget
+        selection = widget.curselection()
+        value = widget.get(selection[0])
+        print 'selection:',selection,', value:',value
+
+    def stringDoubleClick(self, event):
+        widget = event.widget
+        selection = widget.curselection()
+        value = widget.get(selection[0])
+        print 'selection:',selection,', value:',value
 
     def importFile(self):
         dialog = tkFileDialog.Open(self)
