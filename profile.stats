@@ -1,0 +1,335 @@
+         116675 function calls (116156 primitive calls) in 8.378 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    8.183    8.183 /Users/joshuachristman/dev/PyDA/interface/app.py:15(build_and_run)
+        1    0.000    0.000    7.947    7.947 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1066(mainloop)
+        1    5.611    5.611    7.947    7.947 {built-in method mainloop}
+1643/1385    0.011    0.000    2.336    0.002 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1465(__call__)
+2089/1831    2.123    0.001    2.156    0.001 {built-in method call}
+        1    0.000    0.000    2.016    2.016 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:229(importFile)
+        1    0.000    0.000    2.015    2.015 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/tkCommonDialog.py:34(show)
+     1630    0.014    0.000    0.343    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:529(callit)
+     1630    0.032    0.000    0.303    0.000 /Users/joshuachristman/dev/PyDA/interface/app.py:76(pollCallbackQueue)
+        1    0.000    0.000    0.195    0.195 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:234(disassembleFile)
+        1    0.000    0.000    0.192    0.192 /Users/joshuachristman/dev/PyDA/disassembler/Disassembler.py:24(disassemble)
+        1    0.030    0.030    0.192    0.192 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:104(disassemble)
+     1633    0.020    0.000    0.190    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:518(after)
+        1    0.000    0.000    0.167    0.167 /Users/joshuachristman/dev/PyDA/interface/app.py:51(__init__)
+        1    0.000    0.000    0.167    0.167 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1725(__init__)
+        1    0.166    0.166    0.166    0.166 {_tkinter.create}
+       32    0.000    0.000    0.088    0.003 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/program.py:24(addSection)
+     1657    0.048    0.000    0.072    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1143(_register)
+        5    0.012    0.002    0.072    0.014 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:62(searchForFunctions)
+        1    0.000    0.000    0.068    0.068 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:11(__init__)
+        1    0.000    0.000    0.066    0.066 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:41(initUI)
+     1941    0.015    0.000    0.051    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:93(empty)
+     4438    0.028    0.000    0.048    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:32(doesInstSequenceMatch)
+16278/16277    0.025    0.000    0.039    0.000 {len}
+       46    0.001    0.000    0.036    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2021(__init__)
+     1630    0.009    0.000    0.026    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:389(deletecommand)
+     2224    0.017    0.000    0.022    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:614(disasm)
+     3205    0.021    0.000    0.021    0.000 {method 'acquire' of 'thread.lock' objects}
+        2    0.000    0.000    0.021    0.010 /Users/joshuachristman/dev/PyDA/interface/guielements.py:386(setDataModel)
+        2    0.000    0.000    0.021    0.010 /Users/joshuachristman/dev/PyDA/interface/guielements.py:405(redraw)
+        2    0.001    0.000    0.021    0.010 /Users/joshuachristman/dev/PyDA/interface/guielements.py:418(drawLines)
+     2252    0.004    0.000    0.016    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:200(_qsize)
+       32    0.000    0.000    0.016    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:80(searchForStrings)
+     2219    0.016    0.000    0.016    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:349(bytes)
+        1    0.000    0.000    0.016    0.016 /Users/joshuachristman/dev/PyDA/interface/guielements.py:22(__init__)
+     1659    0.015    0.000    0.015    0.000 {built-in method createcommand}
+        2    0.000    0.000    0.014    0.007 /Users/joshuachristman/dev/PyDA/interface/guielements.py:85(addButton)
+     1630    0.014    0.000    0.014    0.000 {built-in method deletecommand}
+        2    0.000    0.000    0.014    0.007 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2087(__init__)
+     4517    0.004    0.000    0.014    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:75(__len__)
+     2219    0.006    0.000    0.013    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:23(addInst)
+       64    0.008    0.000    0.013    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:91(getBytes)
+      303    0.002    0.000    0.011    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:428(insertBottomLine)
+       30    0.000    0.000    0.011    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1237(_configure)
+       13    0.000    0.000    0.010    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1255(configure)
+        2    0.000    0.000    0.010    0.005 /Users/joshuachristman/dev/PyDA/interface/guielements.py:215(addTextboxWithScrollbar)
+        1    0.000    0.000    0.010    0.010 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/platform.py:1303(system)
+        1    0.000    0.000    0.010    0.010 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/platform.py:1166(uname)
+        1    0.000    0.000    0.009    0.009 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/platform.py:1000(_syscmd_uname)
+      303    0.003    0.000    0.009    0.000 /Users/joshuachristman/dev/PyDA/interface/contextmanagers.py:47(insert)
+       56    0.002    0.000    0.009    0.000 {sum}
+        4    0.000    0.000    0.009    0.002 /Users/joshuachristman/dev/PyDA/interface/guielements.py:350(addTextboxWithScrollbar)
+      305    0.000    0.000    0.009    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:21(get)
+     2219    0.009    0.000    0.009    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/inst.py:6(__init__)
+      305    0.001    0.000    0.009    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:35(_get)
+        4    0.000    0.000    0.008    0.002 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2635(__init__)
+       32    0.006    0.000    0.008    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/stringfinder.py:18(findStrings)
+        2    0.008    0.004    0.008    0.004 {method 'read' of 'file' objects}
+     3644    0.006    0.000    0.008    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:77(<genexpr>)
+        4    0.000    0.000    0.007    0.002 /Users/joshuachristman/dev/PyDA/interface/guielements.py:259(addTextbox)
+        4    0.000    0.000    0.007    0.002 /Users/joshuachristman/dev/PyDA/interface/guielements.py:365(__init__)
+        4    0.000    0.000    0.007    0.002 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2866(__init__)
+       10    0.006    0.001    0.007    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:454(datayscroll)
+       16    0.000    0.000    0.007    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2501(__init__)
+       12    0.000    0.000    0.006    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:227(__init__)
+     9449    0.006    0.000    0.006    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:81(__getitem__)
+     2313    0.005    0.000    0.006    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:70(append)
+       55    0.000    0.000    0.005    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:162(toString)
+      311    0.000    0.000    0.005    0.000 /Users/joshuachristman/dev/PyDA/interface/app.py:67(addCallback)
+        6    0.000    0.000    0.005    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:246(addFrame)
+      312    0.002    0.000    0.005    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:107(put)
+     2219    0.005    0.000    0.005    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:329(__init__)
+      190    0.004    0.000    0.005    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:106(_cnfmerge)
+      311    0.002    0.000    0.004    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:150(get)
+     1657    0.004    0.000    0.004    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1460(__init__)
+      303    0.001    0.000    0.004    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:3045(insert)
+      625    0.002    0.000    0.004    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:372(notify)
+     2219    0.004    0.000    0.004    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:354(mnemonic)
+        2    0.000    0.000    0.003    0.002 /Users/joshuachristman/dev/PyDA/interface/guielements.py:204(addListboxWithScrollbar)
+     1639    0.003    0.000    0.003    0.000 {method 'remove' of 'list' objects}
+     2219    0.003    0.000    0.003    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:339(address)
+     2219    0.003    0.000    0.003    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:363(op_str)
+        2    0.000    0.000    0.003    0.002 /Users/joshuachristman/dev/PyDA/interface/guielements.py:337(addListboxWithScrollbar)
+      118    0.001    0.000    0.003    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1100(_options)
+        6    0.000    0.000    0.003    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:194(addFrame)
+        6    0.000    0.000    0.003    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:285(addScrollbar)
+     1703    0.003    0.000    0.003    0.000 {repr}
+     4316    0.003    0.000    0.003    0.000 {method 'append' of 'list' objects}
+       30    0.000    0.000    0.003    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1850(pack_configure)
+     2585    0.003    0.000    0.003    0.000 {method 'release' of 'thread.lock' objects}
+       22    0.000    0.000    0.002    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:233(addElement)
+        6    0.000    0.000    0.002    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2826(__init__)
+     2806    0.002    0.000    0.002    0.000 {isinstance}
+        1    0.001    0.001    0.002    0.002 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:135(getProgramInfo)
+       52    0.000    0.000    0.002    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:27(addFunction)
+     4438    0.002    0.000    0.002    0.000 {method 'extend' of 'bytearray' objects}
+        1    0.002    0.002    0.002    0.002 {posix.popen}
+      270    0.001    0.000    0.002    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:130(toString)
+        2    0.000    0.000    0.002    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:323(addEntryWithLabel)
+      625    0.001    0.000    0.002    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:299(_is_owned)
+        1    0.000    0.000    0.002    0.002 /Users/joshuachristman/dev/PyDA/interface/app.py:102(shutdown)
+        1    0.000    0.000    0.002    0.002 /Users/joshuachristman/dev/PyDA/concurrent/futures.py:62(shutdown)
+        8    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:909(join)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/disassembler/Disassembler.py:8(load)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:14(disassemble)
+       52    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/function.py:6(__init__)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:22(__init__)
+        2    0.000    0.000    0.001    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:308(wait)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:92(parseSections)
+      303    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/contextmanagers.py:23(createTags)
+        6    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:194(_status)
+        2    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/interface/contextmanagers.py:5(__init__)
+        6    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1268(__setitem__)
+        1    0.001    0.001    0.001    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/hashlib.py:55(<module>)
+     1703    0.001    0.000    0.001    0.000 {id}
+        2    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:272(addListbox)
+       17    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/contextmanagers.py:17(addTagToBindings)
+        6    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:181(addElement)
+        6    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:834(add)
+       32    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/re.py:188(compile)
+     2219    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/inst.py:19(length)
+       46    0.001    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1996(_setup)
+       32    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/re.py:226(_compile)
+        7    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2671(add)
+       17    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:3126(tag_configure)
+       33    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:160(__init__)
+        3    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/app.py:62(createCallbackQueue)
+       32    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:10(__init__)
+        4    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2519(__init__)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:19(initVars)
+        1    0.000    0.000    0.001    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:496(compile)
+      368    0.001    0.000    0.001    0.000 {method 'split' of 'str' objects}
+        1    0.001    0.001    0.001    0.001 /Library/Python/2.7/site-packages/capstone/capstone.py:506(__init__)
+       22    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:590(get)
+        2    0.000    0.000    0.001    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2541(__init__)
+        1    0.000    0.000    0.001    0.001 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:497(tk_focusFollowsMouse)
+     1327    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/function.py:15(length)
+        8    0.001    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:197(debug)
+        1    0.000    0.000    0.001    0.001 /Users/joshuachristman/dev/PyDA/interface/guielements.py:27(addMenu)
+      228    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/stringformat.py:10(__init__)
+        2    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:557(__init__)
+        2    0.000    0.000    0.001    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:311(addLabel)
+      199    0.001    0.000    0.001    0.000 {hasattr}
+        5    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2681(add_command)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:298(addEntry)
+      312    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:204(_put)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:97(addLabel)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1795(readprofile)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:531(__init__)
+        6    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:191(status)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2675(add_cascade)
+       33    0.000    0.000    0.000    0.000 {max}
+        3    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:159(addNotebook)
+      311    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:208(_get)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2436(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:676(parse)
+      641    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:63(_note)
+        3    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:26(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:481(_code)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:67(__init__)
+       11    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2857(set)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:129(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:302(_parse_sub)
+        5    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:72(addElement)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:380(_parse)
+       22    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:657(_interpolate)
+       66    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:11(__init__)
+       12    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:355(_get)
+        3    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:177(__init__)
+        9    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:241(Condition)
+      2/1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:33(_compile)
+        3    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:802(__init__)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:3553(__init__)
+      132    0.000    0.000    0.000    0.000 {_tkinter._flatten}
+      483    0.000    0.000    0.000    0.000 {method 'group' of '_sre.SRE_Match' objects}
+        9    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:358(getint)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1755(_loadtk)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:38(addMenuItem)
+        9    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:259(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2039(destroy)
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:108(addProgressBar)
+       32    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/flags.py:10(__init__)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:980(_bind)
+      345    0.000    0.000    0.000    0.000 {_struct.unpack}
+      135    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:142(<genexpr>)
+      168    0.000    0.000    0.000    0.000 {method 'update' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:179(_compile_charset)
+      140    0.000    0.000    0.000    0.000 {method 'format' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:494(_calcscroller)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:208(_optimize_charset)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:996(__init__)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:400(clear)
+        9    0.000    0.000    0.000    0.000 {method 'sub' of '_sre.SRE_Pattern' objects}
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:248(processDisassembly)
+       31    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:570(__getitem__)
+        1    0.000    0.000    0.000    0.000 <string>:1(<module>)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/genericpath.py:26(isfile)
+        6    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:59(_format_optdict)
+       32    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/flags.py:15(__str__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1678(wm_protocol)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2913(delete)
+      102    0.000    0.000    0.000    0.000 {method 'replace' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:135(addElement)
+      228    0.000    0.000    0.000    0.000 {method 'start' of '_sre.SRE_Match' objects}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:997(bind)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:3111(tag_bind)
+      312    0.000    0.000    0.000    0.000 {method 'append' of 'collections.deque' objects}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/tkFileDialog.py:79(_fixresult)
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/concurrent/futures.py:49(submit)
+       32    0.000    0.000    0.000    0.000 {method 'finditer' of '_sre.SRE_Pattern' objects}
+      120    0.000    0.000    0.000    0.000 {method 'items' of 'dict' objects}
+        4    0.000    0.000    0.000    0.000 {posix.stat}
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:3569(add)
+        2    0.000    0.000    0.000    0.000 {_hashlib.openssl_md5}
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/maininterface.py:181(centerWindow)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:399(notifyAll)
+      127    0.000    0.000    0.000    0.000 {method 'lower' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:228(cs_version)
+       15    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:202(get)
+      311    0.000    0.000    0.000    0.000 {method 'popleft' of 'collections.deque' objects}
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/program.py:11(__init__)
+       19    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:183(__next)
+       18    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:678(_interpolation_replace)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:226(_class_escape)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/tkFileDialog.py:54(_fixresult)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1264(cget)
+       31    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:373(optionxform)
+        3    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:361(getfloat)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:362(_compile_info)
+        6    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/hashlib.py:94(__get_openssl_constructor)
+        1    0.000    0.000    0.000    0.000 {method 'sort' of 'list' objects}
+       46    0.000    0.000    0.000    0.000 {method 'keys' of 'dict' objects}
+       30    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:175(<genexpr>)
+       38    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+       32    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/stringfinder.py:14(__init__)
+        1    0.000    0.000    0.000    0.000 {open}
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:50(addMenuSeparator)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:146(acquire)
+       14    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1824(__getattr__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:2687(add_separator)
+      3/2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:141(getwidth)
+       24    0.000    0.000    0.000    0.000 {getattr}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:861(winfo_screenheight)
+        1    0.000    0.000    0.000    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:539(__del__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:258(_escape)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/tkCommonDialog.py:17(__init__)
+        2    0.000    0.000    0.000    0.000 {built-in method getvar}
+        6    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:49(_format_optvalue)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/posixpath.py:68(join)
+        1    0.000    0.000    0.000    0.000 {posix.uname}
+        6    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:131(__getitem__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/string.py:248(strip)
+        6    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:196(match)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/posixpath.py:89(split)
+        7    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:148(<genexpr>)
+        8    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:1150(currentThread)
+       10    0.000    0.000    0.000    0.000 {abs}
+        1    0.000    0.000    0.000    0.000 {method 'close' of 'file' objects}
+        6    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/guielements.py:378(reset)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/tkFileDialog.py:47(_fixoptions)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/interface/contextmanagers.py:43(clearQueue)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:186(release)
+       32    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:102(<lambda>)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1591(wm_geometry)
+       12    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1276(__str__)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:296(_acquire_restore)
+        9    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:58(__init__)
+       54    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:126(length)
+        1    0.000    0.000    0.000    0.000 /Library/Python/2.7/site-packages/capstone/capstone.py:240(cs_support)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1705(wm_title)
+        3    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/Queue.py:197(_init)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:127(__len__)
+       32    0.000    0.000    0.000    0.000 {method 'join' of 'str' objects}
+        9    0.000    0.000    0.000    0.000 {_ctypes.byref}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:179(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/posixpath.py:104(splitext)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:355(_simple)
+       22    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/ConfigParser.py:567(__init__)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:881(winfo_screenwidth)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:1069(quit)
+        5    0.000    0.000    0.000    0.000 {thread.allocate_lock}
+        4    0.000    0.000    0.000    0.000 {method 'rfind' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/posixpath.py:119(basename)
+        5    0.000    0.000    0.000    0.000 {_ctypes.POINTER}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:237(_is_owned)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/genericpath.py:85(_splitext)
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:293(_release_save)
+        6    0.000    0.000    0.000    0.000 {method 'iteritems' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {_sre.compile}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:475(isstring)
+        6    0.000    0.000    0.000    0.000 {globals}
+        1    0.000    0.000    0.000    0.000 {method 'strip' of 'str' objects}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:91(__init__)
+        8    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/threading.py:567(isSet)
+        4    0.000    0.000    0.000    0.000 {min}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/Tkinter.py:379(destroy)
+       14    0.000    0.000    0.000    0.000 {thread.get_ident}
+        1    0.000    0.000    0.000    0.000 {range}
+        2    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:139(append)
+        4    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
+       10    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/section.py:158(length)
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:68(__init__)
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/elf.py:122(getArchName)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:347(setup_master)
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/Disassembler.py:21(getFileType)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/lib-tk/ttk.py:34(_load_tile)
+        1    0.000    0.000    0.000    0.000 {method 'hexdigest' of '_hashlib.HASH' objects}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/UserDict.py:70(__contains__)
+        2    0.000    0.000    0.000    0.000 {method 'clear' of 'collections.deque' objects}
+        1    0.000    0.000    0.000    0.000 {_hashlib.openssl_sha384}
+        1    0.000    0.000    0.000    0.000 {built-in method wantobjects}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:135(__setitem__)
+        4    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_compile.py:25(_identityfunction)
+        1    0.000    0.000    0.000    0.000 {filter}
+        4    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+        2    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/helpers/models.py:91(__init__)
+        1    0.000    0.000    0.000    0.000 {method 'rstrip' of 'str' objects}
+        2    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 {_hashlib.openssl_sha512}
+        1    0.000    0.000    0.000    0.000 {_hashlib.openssl_sha256}
+        1    0.000    0.000    0.000    0.000 {built-in method quit}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/sre_parse.py:206(tell)
+        1    0.000    0.000    0.000    0.000 {_hashlib.openssl_sha1}
+        1    0.000    0.000    0.000    0.000 /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/UserDict.py:18(__getitem__)
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/program.py:37(getExecutableSections)
+        1    0.000    0.000    0.000    0.000 {method 'values' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {_hashlib.openssl_sha224}
+        1    0.000    0.000    0.000    0.000 /Users/joshuachristman/dev/PyDA/disassembler/formats/common/program.py:43(getDataSections)
+
+
