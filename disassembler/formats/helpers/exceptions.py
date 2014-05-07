@@ -1,0 +1,2 @@
+class BadMagicHeaderException(Exception):
+    pass
