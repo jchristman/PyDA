@@ -204,11 +204,11 @@ class PyDAInterface(Frame):
         print 'Shutting down'
         self.app.shutdown()
 
-    def copyString(self):
-        print 'Copy String Selected'
+    def copyString(self, *args):
+        print 'Copy String Selected', args
 
-    def copyValue(self):
-        print 'Copy Value Selected'
+    def copyValue(self, *args):
+        print 'Copy Value Selected', args
 
     def importFile(self):
         dialog = tkFileDialog.Open(self)

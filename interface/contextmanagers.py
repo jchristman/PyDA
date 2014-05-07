@@ -34,7 +34,7 @@ class WidgetClickContextManager:
         if len(tags) > 1:
             # Get the menu object and set its context equal to the uuid
             menu = self.tag_data[tags[0]][1]
-            menu.context = tags[0]
+            menu.context = tags
             menu.post(event.x_root + 5, event.y_root + 5)
 
     def addCallback(self, func, args=None, kwargs=None):

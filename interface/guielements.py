@@ -554,8 +554,8 @@ class Textbox(Text):
             print args
 
 class ContextMenu(Menu):
-    context = None
     def __init__(self, label_command_pairs):
         Menu.__init__(self, tearoff=0)
-        for label, command in label_command_pairs:
-            self.add_command(label=label, command=command)
+        self.context = None
+        for label, callback in label_command_pairs:
+            self.add_command(label=label, command=lambda: callback(self.context))
