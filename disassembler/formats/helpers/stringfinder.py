@@ -19,11 +19,12 @@ class StringFinder:
         # assumes ctype \x00 terminated strings
         pattern = re.compile(r"[\x20-\x7e]{%d,}\x00" % length) 
 
-        strings = []
+        reverse_lookup = {}
         for x in pattern.finditer(self.bytes):
             contents = bytearray(x.group())
             name = x.group()[:-1]
             addr = self.address + x.start()
-            strings.append(StringFormat(addr, name, contents))
+            string_obj = StringFormat(addr, name, contents)
+            reverse_lookup[addr] = string_obj
 
-        return strings
+        return reverse_lookup

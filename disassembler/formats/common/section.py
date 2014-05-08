@@ -6,6 +6,9 @@ from disassembler.formats.helpers.stringfinder import StringFinder
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.common.function import CommonFunctionFormat
 
+# TODO: change all string formats (with the PYDA vars) to a one time, upfront operation
+# so that we don't have to do it every time. This should save quite a few clock cycles.
+
 class CommonSectionFormat:
     def __init__(self, program, section_name, architecture, mode, vaddr, flags, bytes = None):
         self.program = program
@@ -89,7 +92,7 @@ class CommonSectionFormat:
         self.strings = sorted(self.strings, key=lambda x: x.address)
         return self
 
-    def getBytes(self):
+    def getBytes(self): # TODO: Have Frank explain the necessity of this.
         if self.flags.execute:
             bytes = bytearray()
             for inst in self.instructions:
@@ -98,27 +101,6 @@ class CommonSectionFormat:
         else:
             return self.bytes
 
-    def getLines(section, num_opcode_bytes, start=None, end=None):
-        label_addresses = set([label.address for label in self.labels])
-        if start is None:
-            start = 0
-        if end is None:
-            end = len(section.instructions)
-        for inst in section.instructions[start : end]:
-            data = ''
-            #Check if this is the start of a label
-            if inst.address in label_addresses: 
-                data += 'P_S%s: P_A0x%xP_N\n' % (section.name, inst.address) # Empty newline
-                data += 'P_S%s: P_A0x%xP_L %s P_N\n' % (section.name, inst.address, self.findLabelByAddress(inst.address).name + ":")
-
-            # Write the instruction
-            if inst.comment is not None:
-                data += 'P_S%s: P_A0x%x \t P_B%s \t P_M%s  P_O%s  ; P_C%s P_N\n' % (section.name, inst.address, inst.getByteString(num_opcode_bytes), inst.mnemonic, inst.op_str, inst.comment)
-            else:
-                data += 'P_S%s: P_A0x%x \t P_B%s \t P_M%s  P_O%s P_N\n' % (section.name, inst.address, inst.getByteString(num_opcode_bytes), inst.mnemonic, inst.op_str)
-
-            yield data, inst.function
-
 class CommonDataSectionFormat(CommonSectionFormat):
     '''
     These are here to know how to convert them to strings. Otherwise, they
@@ -126,10 +108,10 @@ class CommonDataSectionFormat(CommonSectionFormat):
     '''
     @staticmethod
     def length(section):
-        return 8 # For now that is how long the section header is in lines
+        return 8 + int(1.02*len(section.getBytes())) # TODO: fix this estimate of the length
 
     @staticmethod
-    def toString(section):
+    def toString(section): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
         '''
         Accessible as a static method. CommonDataSectionFormat.toString(section)
         '''
@@ -151,6 +133,52 @@ class CommonDataSectionFormat(CommonSectionFormat):
         for line in section_info.split('\n'):
             yield line + '\n'
 
+        bytes = section.getBytes()
+        index = 0
+        while index < len(bytes):
+            data = ''
+            current_addr = index + section.virtual_address
+
+            if current_addr in section.strings:
+                data += '%s%s: %s0x%x%s\n' % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, current_addr,
+                    section.program.PYDA_ENDL) # Empty newline
+
+                ''' No labels yet
+                data += '%s%s: %s0x%x%s %s %s\n' % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, current_addr,
+                    section.program.PYDA_LABEL, section.findLabelByAddress(current_addr).name + ":",
+                    section.program.PYDA_ENDL)'''
+
+                # Then, write the string itself
+                the_string = section.strings[current_addr]
+                string_contents = the_string.contents[:-1] if '\x00' in the_string.contents else the_string.contents # get rid of trailing null bytes in the string.
+                data += "%s%s: %s0x%x \t %s %s \t %s db %s '%s',0 %s\n" % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, current_addr,
+                    section.program.PYDA_BYTES, the_string.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN),
+                    section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT, string_contents,
+                    section.program.PYDA_ENDL)
+                
+                index += len(string_contents)
+
+            #Otherwise, just mark it as a byte
+            else:
+                byte = bytes[index].encode("hex")
+                data += "%s%s: %s0x%x \t %s %s \t %s db %s '%s' %s\n" % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, current_addr,
+                    section.program.PYDA_BYTES, byte,
+                    section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT,
+                    byte, section.program.PYDA_ENDL)
+                index += 1
+
+            yield data
+
+        yield ' \n'
+
 class CommonExecutableSectionFormat(CommonSectionFormat):
     '''
     These are here to know how to convert them to strings. Otherwise, they
@@ -158,7 +186,7 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
     '''
     @staticmethod
     def length(section):
-        return 9 + len(section.instructions) # The length of the header in lines
+        return 9 + len(section.instructions) + 1 # The length of the header in lines
 
     @staticmethod
     def toString(section):
@@ -194,6 +222,8 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
                     section.program.PYDA_COMMENT, inst.comment,
                     section.program.PYDA_ENDL
                     )
+            
+        yield ' \n' # Yield one last new line for spacing
 
 
 '''

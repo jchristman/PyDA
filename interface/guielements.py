@@ -472,14 +472,14 @@ class Textbox(Text):
                     if self.neg_to_pos: # for some reason, when we are deleting bottom lines, the trailing \n gets lost
                         self.insert('end', '\n')
                         self.neg_to_pos = False
-                    for line in self.data_model.get(self.current_data_offset, self.current_data_offset + lines_to_update):
+                    for line in self.data_model.get(self.current_data_offset + self.TCL_BUFFER_SIZE, lines_to_update):
                         self.insertBottomLine(line)
                     self.deleteTopLine()
                     self.current_data_offset += lines_to_update
                     self.append_lines = 0
             elif self.append_lines == -1:
                 if self.current_data_offset > 0:
-                    for line in self.data_model.get(self.current_data_offset - 1, self.current_data_offset - lines_to_update - 1):
+                    for line in self.data_model.get(self.current_data_offset - 1, lines_to_update, -1):
                         self.insertTopLine(line)
                     self.deleteBottomLine()
                     self.current_data_offset -= lines_to_update

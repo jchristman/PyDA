@@ -46,7 +46,7 @@ class DataModel:
             if type(item) is str: item_length = 1
             else: item_length = self.length(item) # Can be a custom function here
             #print 'Start Index:',start_index,'Item Start:',item_start.val,'Length:',item_length
-            if start_index < item_start.val + item_length: # If we are past the start index, then we should start to get items!
+            if (start_index < item_start.val + item_length and direction == 1) or (start_index > item_start.val + item_length and direction == -1): # If we are past the start index, then we should start to get items!
                 if type(item) is str:
                     item_start.val += 1
                     count += 1

@@ -229,7 +229,8 @@ class PyDAInterface(Frame):
     def importFile(self):
         dialog = tkFileDialog.Open(self)
         file_name = dialog.show()
-        self.app.executor.submit(self.disassembleFile, file_name)
+        if file_name:
+            self.app.executor.submit(self.disassembleFile, file_name)
 
     def disassembleFile(self, file_name):
         self.debug('Reading %s' % file_name)
@@ -266,8 +267,6 @@ class PyDAInterface(Frame):
             data_secs = disassembly.getDataSections() # Get the data model for the textbox
             self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (data_secs,))
             self.status('Done')
-
-            
 
     def printStats(self):
         stats = self.app.executor.getProfileStats()
