@@ -1,5 +1,6 @@
 def defaultToFunc(obj): yield obj
-def defaultFromFunc(string): yield string
+def defaultFromFunc(string): return string
+def defaultSearchFunc(item, data): return None
 
 class DataModel:
     '''
@@ -8,7 +9,7 @@ class DataModel:
     convert between some object format and strings on the fly. The toFunc must be a generator
     that yield strings or DataModels.
     '''
-    def __init__(self, data, toFunc=defaultToFunc, lengthFunc=len, fromFunc=defaultFromFunc):
+    def __init__(self, data, toFunc=defaultToFunc, lengthFunc=len, fromFunc=defaultFromFunc, searchFunc=defaultSearchFunc):
         if not isinstance(data, list):
             raise NotAListException()
         self.data = data
@@ -17,6 +18,7 @@ class DataModel:
         self.length = lengthFunc # You can pass in a custom length function so that the data model can know its recursive length
         self.current_length = 0
         self.length_changed = False
+        self.searchFunc = searchFunc
 
     def get(self, arg1, arg2=None, arg3=1):
         '''
@@ -30,7 +32,6 @@ class DataModel:
         else:
             for item in self._get(arg1, arg2, arg3, DataModel.DataModelIndex(0)):
                 yield item
-            
 
     def _get(self, start_index, max_items, direction, item_start):
         '''
@@ -66,6 +67,30 @@ class DataModel:
                             yield sub_item
             else:
                 item_start.val += item_length
+
+    def set(self, index, item):
+        '''
+        This function will recursively drill to the correct item as references by
+        index and set the item using the fromFunc. 
+        '''
+        pass
+
+    def search(self, data, convert=True):
+        '''
+        This function should return an index of the item within the overall context
+        of the DataModel. It will return the first occurence of the data.
+        '''
+        if convert: data = self.fromFunc(data)
+        offset = 0
+        index = None
+        for item in self:
+            if type(item) is str: offset += 1; continue
+            index = self.searchFunc(item, data)
+            if index:
+                index += offset # To give the total offset in the data structure
+                break
+            offset += self.length(item)
+        return index
                             
     def append(self, item, isStr=False):
         self.length_changed = True

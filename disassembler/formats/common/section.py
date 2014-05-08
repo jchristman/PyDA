@@ -1,8 +1,9 @@
-import struct
+import struct, re
 from disassembler.formats.helpers.label import Label
 from disassembler.formats.helpers.models import DataModel
 from disassembler.formats.helpers import asmfeatures
 from disassembler.formats.helpers.stringfinder import StringFinder
+from disassembler.formats.helpers.comparators import InstComparator, AddressComparator, MnemonicComparator, OpStrComparator, BytesComparator, CommentComparator
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.common.function import CommonFunctionFormat
 
@@ -116,11 +117,99 @@ class CommonSectionFormat:
         else:
             return self.bytes
 
+class CommonExecutableSectionFormat(CommonSectionFormat):
+    '''
+    These are here to know how to convert them to strings. Otherwise, they
+    are just CommonExecutableSectionFormat object
+    '''
+    @staticmethod
+    def search(section, inst_comparator):
+        if inst_comparator is None: return None
+        if not isinstance(inst_comparator, InstComparator):
+            raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
+        if inst_comparator in section.instructions:
+            match = inst_comparator.match
+            return section.instructions.index(match)
+        return None
+    
+    @staticmethod
+    def fromString(string):
+        '''
+        This function will return some representation of the string input in a format
+        that the search function will understand - a CommonInstFormat.
+        '''
+        m = re.search(r'^0x([a-fA-F0-9]+)', string)
+        if m: return AddressComparator(CommonInstFormat(int(m.group(1), 16), None, None, None, None))
+    
+    @staticmethod
+    def length(section):
+        return 9 + len(section.instructions) + 1 # The length of the header in lines
+
+    @staticmethod
+    def toString(section):
+        '''
+        Accessible as a static method. CommonSectionFormat.toString(section)
+        '''
+        fields = {
+            "Section name": section.name,
+            "Properties": str(section.flags),
+            "Starting Address" : "0x%x" % section.virtual_address,
+            "Number of Functions": str(len(section.functions)),
+            "Size": str(len(section.getBytes())) + " bytes",
+        }
+
+        max_length = max(len(x) + len(fields[x]) for x in fields) + 2
+
+        section_info = "#"*(max_length+3) + "\n"
+        section_info += "   SECTION START\n"
+        for x in fields:
+            section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
+        section_info += "#"*(max_length+3) + "\n \n"
+
+        for line in section_info.split('\n'):
+            yield line + '\n'
+
+        for inst in section.instructions:
+            data = ''
+            if inst.address in section.functions_reverse_lookup.keys():
+                data += '%s%s: %s0x%x%s\n' % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, inst.address,
+                    section.program.PYDA_ENDL) # Empty newline
+                data += '%s%s: %s0x%x%s %s %s\n' % (
+                    section.program.PYDA_SECTION, section.name,
+                    section.program.PYDA_ADDRESS, inst.address,
+                    section.program.PYDA_LABEL, section.labels[inst.address].name + ":",
+                    section.program.PYDA_ENDL)
+
+            data += '%s%s%s: %s0x%x \t %s%s \t %s%s  %s%s  %s%s %s\n' % (
+                    section.program.PYDA_BEGL,
+                    section.program.PYDA_SECTION, section.name, 
+                    section.program.PYDA_ADDRESS, inst.address,
+                    section.program.PYDA_BYTES, inst.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN), 
+                    section.program.PYDA_MNEMONIC, inst.mnemonic, 
+                    section.program.PYDA_OP_STR, inst.op_str,
+                    section.program.PYDA_COMMENT, '' if inst.comment is None else '; %s' % inst.comment,
+                    section.program.PYDA_ENDL
+                    )
+
+            yield data
+            
+        yield ' \n' # Yield one last new line for spacing
+
 class CommonDataSectionFormat(CommonSectionFormat):
     '''
     These are here to know how to convert them to strings. Otherwise, they
     are just CommonSectionFormat object
     '''
+    @staticmethod
+    def search(section, string):
+        pass
+    
+    @staticmethod
+    def fromString(string):
+        pass
+
     @staticmethod
     def length(section):
         return 8 + int(1.02*len(section.getBytes())) # TODO: fix this estimate of the length
@@ -194,64 +283,3 @@ class CommonDataSectionFormat(CommonSectionFormat):
             yield data
 
         yield ' \n'
-
-class CommonExecutableSectionFormat(CommonSectionFormat):
-    '''
-    These are here to know how to convert them to strings. Otherwise, they
-    are just CommonExecutableSectionFormat object
-    '''
-    @staticmethod
-    def length(section):
-        return 9 + len(section.instructions) + 1 # The length of the header in lines
-
-    @staticmethod
-    def toString(section):
-        '''
-        Accessible as a static method. CommonSectionFormat.toString(section)
-        '''
-        fields = {
-            "Section name": section.name,
-            "Properties": str(section.flags),
-            "Starting Address" : "0x%x" % section.virtual_address,
-            "Number of Functions": str(len(section.functions)),
-            "Size": str(len(section.getBytes())) + " bytes",
-        }
-
-        max_length = max(len(x) + len(fields[x]) for x in fields) + 2
-
-        section_info = "#"*(max_length+3) + "\n"
-        section_info += "   SECTION START\n"
-        for x in fields:
-            section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
-        section_info += "#"*(max_length+3) + "\n \n"
-
-        for line in section_info.split('\n'):
-            yield line + '\n'
-
-        for inst in section.instructions:
-            data = ''
-            if inst.address in section.functions_reverse_lookup.keys():
-                data += '%s%s: %s0x%x%s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_ENDL) # Empty newline
-                data += '%s%s: %s0x%x%s %s %s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_LABEL, section.labels[inst.address].name + ":",
-                    section.program.PYDA_ENDL)
-
-            data += '%s%s%s: %s0x%x \t %s%s \t %s%s  %s%s  %s%s %s\n' % (
-                    section.program.PYDA_BEGL,
-                    section.program.PYDA_SECTION, section.name, 
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_BYTES, inst.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN), 
-                    section.program.PYDA_MNEMONIC, inst.mnemonic, 
-                    section.program.PYDA_OP_STR, inst.op_str,
-                    section.program.PYDA_COMMENT, '' if inst.comment is None else '; %s' % inst.comment,
-                    section.program.PYDA_ENDL
-                    )
-
-            yield data
-            
-        yield ' \n' # Yield one last new line for spacing

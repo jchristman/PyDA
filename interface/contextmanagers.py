@@ -46,6 +46,8 @@ class WidgetClickContextManager:
 
             ranges = self.widget.tag_ranges(tags[1])
             clicked_data = self.widget.get(ranges[0], ranges[1])
+            index = self.widget.data_model.search(clicked_data)
+            print 'Data is at index %i of data model' % index
             menu = self.tag_data[tags[0]][1]
             menu.context = clicked_data
             menu.post(event.x_root + 5, event.y_root + 5)

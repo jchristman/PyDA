@@ -15,9 +15,11 @@ class CommonProgramDisassemblyFormat:
         self.initVars()
 
         self.executable_sections = DataModel([], toFunc=CommonExecutableSectionFormat.toString, 
-                lengthFunc=CommonExecutableSectionFormat.length)
+                lengthFunc=CommonExecutableSectionFormat.length, fromFunc=CommonExecutableSectionFormat.fromString,
+                searchFunc=CommonExecutableSectionFormat.search)
         self.data_sections = DataModel([], toFunc=CommonDataSectionFormat.toString,
-                lengthFunc=CommonDataSectionFormat.length)
+                lengthFunc=CommonDataSectionFormat.length, fromFunc=CommonDataSectionFormat.fromString,
+                searchFunc=CommonDataSectionFormat.search)
 
         for line in self.program_info.split('\n'):
             self.executable_sections.append(line + '\n')
