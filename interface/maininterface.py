@@ -28,6 +28,7 @@ class PyDAInterface(Frame):
         self.PYDA_LABEL = self.app.settings_manager.get('context', 'pyda-label')
         self.PYDA_BYTES = self.app.settings_manager.get('context', 'pyda-bytes')
         self.PYDA_GENERIC = self.app.settings_manager.get('context', 'pyda-generic')
+        self.PYDA_BEGL = self.app.settings_manager.get('context', 'pyda-begl')
         self.PYDA_ENDL = self.app.settings_manager.get('context', 'pyda-endl')
         self.REDIR_STDOUT = self.app.settings_manager.getint('debugging', 'redirect-stdout')
         self.DEBUG = self.app.settings_manager.getint('debugging', 'debug-on')
@@ -152,7 +153,7 @@ class PyDAInterface(Frame):
         # Create a context manager for the disassembly textbox
         self.disassembly_textbox_context_manager = WidgetClickContextManager(
                 self.app, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
-                right_click_button, [
+                self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', self.section_context_menu), 
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
                     (self.PYDA_MNEMONIC, 'blue', None), 
@@ -169,7 +170,7 @@ class PyDAInterface(Frame):
         # Create a context manager for the data sections textbox
         self.data_textbox_context_manager = WidgetClickContextManager(
                 self.app, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP, 
-                right_click_button, [
+                self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', None), 
                     (self.PYDA_MNEMONIC, 'blue', None), 
                     (self.PYDA_OP_STR, 'darkblue', None), 
@@ -235,6 +236,7 @@ class PyDAInterface(Frame):
         print 'selection:',selection,', value:',value
 
     def importFile(self):
+        self.progress_bar.start()
         dialog = tkFileDialog.Open(self)
         file_name = dialog.show()
         if file_name:
@@ -275,9 +277,10 @@ class PyDAInterface(Frame):
                 if isinstance(sec, CommonSectionFormat):
                     for string in sec.strings_list:
                         self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
-            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (data_secs,))
+            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (data_secs, self.progress_bar))
             self.debug('Done')
             self.status('Done')
+            self.progress_bar.stop()
 
     def printStats(self):
         stats = self.app.executor.getProfileStats()

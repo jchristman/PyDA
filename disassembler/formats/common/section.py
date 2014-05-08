@@ -169,7 +169,8 @@ class CommonDataSectionFormat(CommonSectionFormat):
                 # Then, write the string itself
                 the_string = section.strings[current_addr]
                 string_contents = the_string.contents[:-1] if '\x00' in the_string.contents else the_string.contents # get rid of trailing null bytes in the string.
-                data += "%s%s: %s0x%x \t %s %s \t %s db %s '%s',0 %s\n" % (
+                data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s',0 %s\n" % (
+                    section.program.PYDA_BEGL,
                     section.program.PYDA_SECTION, section.name,
                     section.program.PYDA_ADDRESS, current_addr,
                     section.program.PYDA_BYTES, the_string.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN),
@@ -181,7 +182,8 @@ class CommonDataSectionFormat(CommonSectionFormat):
             #Otherwise, just mark it as a byte
             else:
                 byte = bytes[index].encode("hex")
-                data += "%s%s: %s0x%x \t %s %s \t %s db %s '%s' %s\n" % (
+                data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s' %s\n" % (
+                    section.program.PYDA_BEGL,
                     section.program.PYDA_SECTION, section.name,
                     section.program.PYDA_ADDRESS, current_addr,
                     section.program.PYDA_BYTES, byte,
@@ -239,13 +241,14 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
                     section.program.PYDA_LABEL, section.labels[inst.address].name + ":",
                     section.program.PYDA_ENDL)
 
-            data += '%s%s: %s0x%x \t %s%s \t %s%s  %s%s  %s%s %s\n' % (
+            data += '%s%s%s: %s0x%x \t %s%s \t %s%s  %s%s  %s%s %s\n' % (
+                    section.program.PYDA_BEGL,
                     section.program.PYDA_SECTION, section.name, 
                     section.program.PYDA_ADDRESS, inst.address,
                     section.program.PYDA_BYTES, inst.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN), 
                     section.program.PYDA_MNEMONIC, inst.mnemonic, 
                     section.program.PYDA_OP_STR, inst.op_str,
-                    section.program.PYDA_COMMENT, inst.comment,
+                    section.program.PYDA_COMMENT, '' if inst.comment is None else '; %s' % inst.comment,
                     section.program.PYDA_ENDL
                     )
 

@@ -32,6 +32,7 @@ class CommonProgramDisassemblyFormat:
         self.PYDA_LABEL = self.settings_manager.get('context', 'pyda-label')
         self.PYDA_BYTES = self.settings_manager.get('context', 'pyda-bytes')
         self.PYDA_GENERIC = self.settings_manager.get('context', 'pyda-generic')
+        self.PYDA_BEGL = self.settings_manager.get('context', 'pyda-begl')
         self.PYDA_ENDL = self.settings_manager.get('context', 'pyda-endl')
         self.NUM_OPCODE_BYTES_SHOWN = self.settings_manager.getint('disassembly','num-opcode-bytes-shown')
         self.MIN_STRING_SIZE = self.settings_manager.getint('disassembly','min-string-size')

@@ -383,10 +383,12 @@ class Textbox(Text):
         self.neg_to_pos = False
         self.paging_scroll_start = 0
 
-    def setDataModel(self, data_model):
+    def setDataModel(self, data_model, progress_bar=None):
         self.reset()
         self.data_model = data_model
         self.redraw()
+        if progress_bar:
+            self.context_manager.addCallback(progress_bar.stop)
 
     def appendData(self, data, moveto_end=False):
         self.data_model.append(data)

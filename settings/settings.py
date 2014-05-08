@@ -47,6 +47,7 @@ class SettingsManager(ConfigParser):
         self.set('context', 'pyda-label', '%(pyda-sep)sL')
         self.set('context', 'pyda-bytes', '%(pyda-sep)sB')
         self.set('context', 'pyda-generic', '%(pyda-sep)sG')
+        self.set('context', 'pyda-begl', '%(pyda-sep)sD')
         self.set('context', 'pyda-endl', '%(pyda-sep)sN')
 
         self.add_section('disassembly')
