@@ -1,5 +1,5 @@
-def defaultToFunc(obj): yield ''
-def defaultFromFunc(string): yield ''
+def defaultToFunc(obj): yield obj
+def defaultFromFunc(string): yield string
 
 class DataModel:
     '''

@@ -38,16 +38,8 @@ class CommonProgramDisassemblyFormat:
 
     def addSection(self, section):
         if isinstance(section, CommonSectionFormat):
-            section.searchForStrings()
-            #self.addLabelsForStrings(section.strings)
-
-            if section.flags.execute:
-                section.searchForFunctions()
-                #self.functions += section.functions
-                #self.addLabelsForFunctions(section.functions)
-                self.executable_sections.append(section)
-            else:
-                self.data_sections.append(section)
+            if section.flags.execute:   self.executable_sections.append(section)
+            else:                       self.data_sections.append(section)
     
     def getExecutableSections(self):
         '''

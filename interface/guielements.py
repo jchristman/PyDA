@@ -390,7 +390,7 @@ class Textbox(Text):
 
     def appendData(self, data, moveto_end=False):
         self.data_model.append(data)
-        self.insertBottomLine(self.data_model.get(len(self.data_model) - 1, len(self.data_model)))
+        self.insertBottomLine(self.data_model[-1])
         if moveto_end:
             if self.context_manager:
                 self.context_manager.yview_moveto('1.0')

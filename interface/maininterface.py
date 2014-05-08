@@ -1,6 +1,8 @@
-from Tkinter import Frame, IntVar, END
+from Tkinter import Frame
 from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
+from disassembler.formats.common.section import CommonSectionFormat
+from disassembler.formats.helpers.models import DataModel
 from contextmanagers import WidgetClickContextManager
 from redirectors import StdoutRedirector
 from platform import system
@@ -119,6 +121,9 @@ class PyDAInterface(Frame):
                 'Command:', 'bottom', 'x', True, background='white', 
                 borderwidth=1, highlightthickness=1, relief='sunken')
 
+        self.debug_data_model = DataModel([])
+        self.debug_textbox.setDataModel(self.debug_data_model)
+
         # Set up the chat window
         chat_frame = self.bottom_notebook.addFrame('Chat')
         chat_frame_2 = chat_frame.addFrame('bottom', 'x', False, borderwidth=1)
@@ -129,6 +134,9 @@ class PyDAInterface(Frame):
         self.chat_entry = chat_frame_2.addEntryWithLabel(
                 'Send:', 'bottom', 'x', True, background='white', 
                 borderwidth=1, highlightthickness=1, relief='sunken')
+        
+        self.chat_data_model = DataModel([])
+        self.chat_textbox.setDataModel(self.chat_data_model)
 
         # Set up the context menus
         self.section_context_menu = ContextMenu([('Copy', self.copyString)])
@@ -249,23 +257,26 @@ class PyDAInterface(Frame):
     def processDisassembly(self, disassembly):
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
-            self.debug('Processing Functions')
-            #for function in disassembly.functions:
-            #    self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end', function.name))
-
-            self.debug('Processing Strings')
-            #for string in disassembly.strings:
-            #    self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end', string.contents))
-
             self.debug('Processing Executable Sections')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
             ex_secs = disassembly.getExecutableSections() # Get the data model for the textbox
+            for sec in ex_secs:
+                if isinstance(sec, CommonSectionFormat):
+                    for func in sec.functions:
+                        self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
+                    for string in sec.strings_list:
+                        self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (ex_secs,))
 
             self.debug('Processing Data Sections')
             data = disassembly.program_info + self.PYDA_ENDL + '\n'
             data_secs = disassembly.getDataSections() # Get the data model for the textbox
+            for sec in data_secs:
+                if isinstance(sec, CommonSectionFormat):
+                    for string in sec.strings_list:
+                        self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
             self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (data_secs,))
+            self.debug('Done')
             self.status('Done')
 
     def printStats(self):

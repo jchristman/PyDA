@@ -11,11 +11,3 @@ class CommonFunctionFormat:
         self.function_instructions = self.parent_section.instructions[start_inst_index : end_inst_index + 1]
         for inst in self.function_instructions:
             inst.function = self
-
-    @staticmethod
-    def length(function):
-        return 1
-
-    @staticmethod
-    def toString(function):
-        pass

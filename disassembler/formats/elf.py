@@ -116,7 +116,12 @@ class ELF:
                 for inst in md.disasm(sCODE, s.sh_addr):
                     section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
 
-            disassembly.addSection(section)
+            section.searchForStrings()
+            section.searchForFunctions()
+            section.addStringLabels()
+            section.addFunctionLabels()
+
+            disassembly.addSection(section.sort())
         return disassembly
 
     def getArchName(self):

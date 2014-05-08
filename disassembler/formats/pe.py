@@ -245,13 +245,21 @@ class PE:
             # linear sweep (for now)
             for inst in md.disasm(s["opcodes"], s["vaddr"]):
                 section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
-
-            disassembly.addSection(section)
+            
+            section.searchForStrings()
+            section.searchForFunctions()
+            section.addStringLabels()
+            section.addFunctionLabels()
+            disassembly.addSection(section.sort())
 
         for s in self.getDataSections():
             s["name"] = s["name"].replace('\x00','')
             section = CommonSectionFormat(s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
-            disassembly.addSection(section)
+            section.searchForStrings()
+            section.searchForFunctions()
+            section.addStringLabels()
+            section.addFunctionLabels()
+            disassembly.addSection(section.sort())
 
         return disassembly
 
