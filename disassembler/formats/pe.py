@@ -234,13 +234,13 @@ class PE:
     def getFormat(self):
         return "PE"
 
-    def disassemble(self):
+    def disassemble(self, settings_manager):
         md = capstone.Cs(self.getArch(), self.getArchMode())
-        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo())
+        disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo(), settings_manager)
 
         for s in self.getExecSections():
             s["name"] = s["name"].replace('\x00','')
-            section = CommonSectionFormat(s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("rwx")) #TODO: make flags more accurate
+            section = CommonSectionFormat(disassembly, s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("rwx")) #TODO: make flags more accurate
 
             # linear sweep (for now)
             for inst in md.disasm(s["opcodes"], s["vaddr"]):
@@ -254,7 +254,7 @@ class PE:
 
         for s in self.getDataSections():
             s["name"] = s["name"].replace('\x00','')
-            section = CommonSectionFormat(s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
+            section = CommonSectionFormat(disassembly, s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
             section.searchForStrings()
             section.searchForFunctions()
             section.addStringLabels()

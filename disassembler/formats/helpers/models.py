@@ -41,6 +41,7 @@ class DataModel:
         the passed in lengthFunc provides an accurate measure of how long each child of that
         node is, this function will work and yield the appropriate items...
         '''
+        print start_index, max_items, direction, item_start.val
         count = 0
         for item in self:
             if count >= max_items: return
