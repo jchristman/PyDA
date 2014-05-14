@@ -1,6 +1,5 @@
 import struct
 from disassembler.formats.helpers.label import Label
-from disassembler.formats.helpers.models import DataModel
 
 class CommonFunctionFormat:
     def __init__(self, start_inst_index, end_inst_index, name, parent_section):

@@ -1,29 +1,21 @@
 import struct
 from disassembler.formats.helpers.label import Label
-from disassembler.formats.helpers.models import DataModel
+from disassembler.formats.helpers.models import AbstractDataModel
 from disassembler.formats.common.section import CommonSectionFormat, CommonExecutableSectionFormat, CommonDataSectionFormat
 
-class CommonProgramDisassemblyFormat:
+class CommonProgramDisassemblyFormat(AbstractDataModel):
     '''
     All the CommonProgramDisassemblyFormat will do now is have an array of Data Models
     that will be used to access and mutate the information in the data structure.
     '''
     def __init__(self, program_info, settings_manager):
-        self.program_info = program_info
+        self.program_info = [line + '\n' for line in program_info.split('\n')]
         self.settings_manager = settings_manager
 
         self.initVars()
 
-        self.executable_sections = DataModel([], toFunc=CommonExecutableSectionFormat.toString, 
-                lengthFunc=CommonExecutableSectionFormat.length, fromFunc=CommonExecutableSectionFormat.fromString,
-                searchFunc=CommonExecutableSectionFormat.search)
-        self.data_sections = DataModel([], toFunc=CommonDataSectionFormat.toString,
-                lengthFunc=CommonDataSectionFormat.length, fromFunc=CommonDataSectionFormat.fromString,
-                searchFunc=CommonDataSectionFormat.search)
-
-        for line in self.program_info.split('\n'):
-            self.executable_sections.append(line + '\n')
-        self.executable_sections.append(' \n')
+        self.executable_sections = []
+        self.data_sections = []
 
     def initVars(self):
         self.PYDA_SECTION = self.settings_manager.get('context','pyda-section')
@@ -41,6 +33,7 @@ class CommonProgramDisassemblyFormat:
 
     def addSection(self, section):
         if isinstance(section, CommonSectionFormat):
+            section.serialize() # This creates a string representation.
             if section.flags.execute:   self.executable_sections.append(section)
             else:                       self.data_sections.append(section)
     
@@ -55,3 +48,55 @@ class CommonProgramDisassemblyFormat:
         Return the data model
         '''
         return self.data_sections
+
+    def get(self, arg1, arg2=None, arg3=1, key=None):
+        if arg2 is None:
+            arg2 = arg1
+            arg1 = 0
+        text_range = xrange(arg1, arg2, arg3)
+        for i in text_range:
+            if key == 'exe':
+                yield self._get(i, self.executable_sections)
+            elif key == 'data':
+                yield self._get(i, self.data_sections)
+
+    def _get(self, index, section_array):
+        offset = 0
+        for line in self.program_info:
+            if index == offset:
+                return line
+            offset += 1
+        for section in section_array:
+            length = len(section.string_rep)
+            if index < offset + length: # Then the item is inside this section
+                return section.string_rep[index - offset]
+            offset += length
+        return None
+
+    def getitem(self, index, key=None):
+        if index < len(self.text):
+            if key == 'exe':
+                return self._get(index, self.executable_sections)
+            elif key == 'data':
+                return self._get(index, self.data_sections)
+        else:
+            return None
+    '''
+    These three methods will currently raise a NotImplementedError
+    def set(self, index, item, key=None):
+        self.text[index] = item
+
+    def append(self, item, key=None):
+        self.text.append(item)
+
+    def search(self, string, key=None):
+        return self.text.index(string)
+    '''
+
+    def length(self, key=None):
+        if key == 'exe':
+            return len(self.program_info) + sum(len(section.string_rep) for section in self.executable_sections)
+        elif key == 'data':
+            return len(self.program_info) + sum(len(section.string_rep) for section in self.data_sections)
+        else: 
+            return 0

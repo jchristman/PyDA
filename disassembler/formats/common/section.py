@@ -1,6 +1,5 @@
 import struct, re
 from disassembler.formats.helpers.label import Label
-from disassembler.formats.helpers.models import DataModel
 from disassembler.formats.helpers import asmfeatures
 from disassembler.formats.helpers.stringfinder import StringFinder
 from disassembler.formats.helpers.comparators import InstComparator, AddressComparator, MnemonicComparator, OpStrComparator, BytesComparator, CommentComparator
@@ -21,10 +20,12 @@ class CommonSectionFormat:
         if not self.flags.execute:
             self.bytes = bytes # Bytes will only be set when this is a non-exec section
         self.virtual_address = vaddr
-        self.instructions = DataModel([], toFunc=CommonInstFormat.toString, lengthFunc=CommonInstFormat.length)
+        self.instructions = []
         self.functions = []
         self.labels = {}
         self.functions_reverse_lookup = {}
+
+        self.string_rep = []
 
     ### ADDING FUNCS ###
     def addInst(self, inst):
@@ -107,6 +108,12 @@ class CommonSectionFormat:
         self.strings_list = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
         return self
 
+    def serialize(self):
+        if not self.flags.execute:
+            self.string_rep = CommonDataSectionFormat.toString(self)
+        else:
+            self.string_rep = CommonExecutableSectionFormat.toString(self)
+
     ### ACCESSOR FUNCS ###
     def getBytes(self): # TODO: Have Frank explain the necessity of this.
         if self.flags.execute:
@@ -123,33 +130,12 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
     are just CommonExecutableSectionFormat object
     '''
     @staticmethod
-    def search(section, inst_comparator):
-        if inst_comparator is None: return None
-        if not isinstance(inst_comparator, InstComparator):
-            raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
-        if inst_comparator in section.instructions:
-            match = inst_comparator.match
-            return section.instructions.index(match)
-        return None
-    
-    @staticmethod
-    def fromString(string):
-        '''
-        This function will return some representation of the string input in a format
-        that the search function will understand - a CommonInstFormat.
-        '''
-        m = re.search(r'^0x([a-fA-F0-9]+)', string)
-        if m: return AddressComparator(CommonInstFormat(int(m.group(1), 16), None, None, None, None))
-    
-    @staticmethod
-    def length(section):
-        return 9 + len(section.instructions) + 1 # The length of the header in lines
-
-    @staticmethod
-    def toString(section):
+    def toString(section): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
         '''
         Accessible as a static method. CommonSectionFormat.toString(section)
         '''
+        string_array = []
+
         fields = {
             "Section name": section.name,
             "Properties": str(section.flags),
@@ -166,8 +152,7 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
             section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
         section_info += "#"*(max_length+3) + "\n \n"
 
-        for line in section_info.split('\n'):
-            yield line + '\n'
+        string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
         for inst in section.instructions:
             data = ''
@@ -193,9 +178,12 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
                     section.program.PYDA_ENDL
                     )
 
-            yield data
-            
-        yield ' \n' # Yield one last new line for spacing
+            string_array += [string + '\n' for string in data.split('\n') if not string == '']
+
+        if len(section.instructions) > 0:
+            string_array += ['\n']
+
+        return string_array
 
 class CommonDataSectionFormat(CommonSectionFormat):
     '''
@@ -203,22 +191,12 @@ class CommonDataSectionFormat(CommonSectionFormat):
     are just CommonSectionFormat object
     '''
     @staticmethod
-    def search(section, string):
-        pass
-    
-    @staticmethod
-    def fromString(string):
-        pass
-
-    @staticmethod
-    def length(section):
-        return 8 + int(1.02*len(section.getBytes())) # TODO: fix this estimate of the length
-
-    @staticmethod
-    def toString(section): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
+    def toString(section):
         '''
         Accessible as a static method. CommonDataSectionFormat.toString(section)
         '''
+        string_array = []
+
         fields = {
             "Section name": section.name,
             "Properties": str(section.flags),
@@ -234,8 +212,7 @@ class CommonDataSectionFormat(CommonSectionFormat):
             section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
         section_info += "#"*(max_length+3) + "\n \n"
 
-        for line in section_info.split('\n'):
-            yield line + '\n'
+        string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
         bytes = section.getBytes()
         index = 0
@@ -280,6 +257,9 @@ class CommonDataSectionFormat(CommonSectionFormat):
                     byte, section.program.PYDA_ENDL)
                 index += 1
 
-            yield data
+            string_array += [string + '\n' for string in data.split('\n') if not string == '']
+        
+        if len(bytes) > 0:
+            string_array += ['\n']
 
-        yield ' \n'
+        return string_array

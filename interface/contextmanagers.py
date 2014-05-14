@@ -60,7 +60,12 @@ class WidgetClickContextManager:
             self.processing_queue.queue.clear()
 
     def insert(self, index, line):
-        line = [x for x in line.split(self.separator) if not x == '']
+        try: line = [x for x in line.split(self.separator) if not x == '']
+        except: return
+        
+        if len(line) == 1:
+            self.app.addCallback(self.processing_queue, self.widget.insert, (index, line[0]))
+            return
         if index == '1.0':
             line = line[::-1]
             indices = ('1.0', '2.0')
@@ -73,6 +78,7 @@ class WidgetClickContextManager:
                 continue
             part = part[1:]
             self.app.addCallback(self.processing_queue, self.widget.insert, (index, part, self.createTags(part_type)))
+
         if self.is_line:
             self.is_line = False
             self.app.addCallback(self.processing_queue, self.widget.tag_add,
