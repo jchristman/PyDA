@@ -374,7 +374,7 @@ class Textbox(Text):
         self.MAX_LINES_JUMP = max_lines_jump
         self.reset()
         self.data_model = data_model
-        self.config(state=DISABLED)
+        # self.config(state=DISABLED)
 
     def reset(self):
         self.current_data_offset = 0
@@ -424,28 +424,29 @@ class Textbox(Text):
 
     #TODO: Make this more efficient. Toggles twice every time you insert a line
     def insert(self, *args): 
-        flag = True
-        if self.config()["state"] == NORMAL:
-            flag = False
-        else:
-            self.config(state=NORMAL)
+        # flag = True
+        # if self.config()["state"] == NORMAL:
+        #     flag = False
+        # else:
+        #     self.config(state=NORMAL)
+        
 
         Text.insert(self, *args)
         
-        if flag:
-            self.config(state=DISABLED)
+        # if flag:
+        #     self.config(state=DISABLED)
 
-    def delete(self, *args): 
-        flag = True
-        if self.config()["state"] == NORMAL:
-            flag = False
-        else:
-            self.config(state=NORMAL)
+    # def delete(self, *args): 
+    #     flag = True
+    #     if self.config()["state"] == NORMAL:
+    #         flag = False
+    #     else:
+    #         self.config(state=NORMAL)
 
-        Text.delete(self, *args)
+    #     Text.delete(self, *args)
         
-        if flag:
-            self.config(state=DISABLED)
+    #     if flag:
+    #         self.config(state=DISABLED)
 
     def insertTopLine(self, line):
         if self.context_manager:

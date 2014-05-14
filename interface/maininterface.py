@@ -164,9 +164,11 @@ class PyDAInterface(Frame):
                     (self.PYDA_LABEL, 'saddle brown', self.label_context_menu),
                     (self.PYDA_BYTES, 'dark gray', None),
                     (self.PYDA_GENERIC, 'black', None),
-                    (self.PYDA_ENDL, 'black', self.comment_context_menu)])
+                    (self.PYDA_ENDL, 'black', self.comment_context_menu)], )
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
+
+        self.disassembly_textbox.bind('<Key>', self.keyHandler)
 
         data_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the data sections textbox
@@ -238,24 +240,33 @@ class PyDAInterface(Frame):
         frame3 = Frame(tl)
         frame3.pack(side=BOTTOM)
 
-        msg = Label(frame1, text="Please enter your comment:", height=0, width=100)
+        msg = Label(frame1, text="Please enter your comment:", height=0, width=50)
         msg.pack()
 
         e = Entry(frame2)
         e.pack(side=LEFT)
 
-        def addComment():
-            print "Comment: " + e.get()
+        def addComment(*args):
+            print 'Comment:', e.get()
+            tl.destroy()
 
-        button1 = Button(frame2, text="Add", command=addComment)
+        button1 = Button(frame2, text="Add Comment", command=addComment)
         button1.pack(side=RIGHT)
 
-        button2 = Button(frame3, text="Done", command=tl.destroy)
-        button2.pack(side=BOTTOM)
+        e.focus()
+        e.bind('<Return>', addComment)
 
-        tl.grab_set() # Grabs and holds focus
+        tl.grab_set() # Keeps this toplevel on top
 
-        
+    def keyHandler(self, event):
+        print 'pressed:', repr(event.char)
+        if event.char == ";":
+            self.comment(event)
+        else: 
+            #TODO: could do some things to retrieve the entire line here. Figure out what we want
+            line, _ = self.disassembly_textbox.index('insert').split('.')
+            # print line
+        return "break"
 
     def renameLabel(self, *args):
         print 'Rename selected', args
