@@ -85,13 +85,23 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
     These three methods will currently raise a NotImplementedError
     def set(self, index, item, key=None):
         self.text[index] = item
-
-    def append(self, item, key=None):
-        self.text.append(item)
+    '''
 
     def search(self, string, key=None):
-        return self.text.index(string)
-    '''
+        if key == 'exe':
+            return self._search(string, self.executable_sections)
+        elif key == 'data':
+            return self._search(string, self.data_sections)
+        return None
+
+    def _search(self, string, sections):
+        offset = len(self.program_info)
+        for section in sections:
+            result = section.search(string)
+            if result:
+                return result
+            offset += len(section.string_rep)
+        return None
 
     def length(self, key=None):
         if key == 'exe':

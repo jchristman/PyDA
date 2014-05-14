@@ -42,11 +42,11 @@ class WidgetClickContextManager:
                 for i in xrange(0, len(ranges), 2):
                     start = ranges[i]
                     stop = ranges[i+1]
-                    print 'Line clicked is:',repr(self.widget.get(start, stop))
+                    #print 'Line clicked is:',repr(self.widget.get(start, stop))
 
             ranges = self.widget.tag_ranges(tags[1])
             clicked_data = self.widget.get(ranges[0], ranges[1])
-            index = self.widget.data_model.search(clicked_data)
+            index = self.widget.data_model.search(clicked_data, key=self.widget.key)
             print 'Data is at index %i of data model' % index
             menu = self.tag_data[tags[0]][1]
             menu.context = clicked_data

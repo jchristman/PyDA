@@ -107,6 +107,25 @@ class CommonSectionFormat:
         self.functions = sorted(self.functions, key=lambda x: x.start_address)
         self.strings_list = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
         return self
+    
+    def search(self, string):
+        '''
+        This function will return some representation of the string input in a format
+        that the search function will understand - a CommonInstFormat.
+        '''
+        m = re.search(r'^0x([a-fA-F0-9]+)', string)
+        if m:
+            result = self._search(AddressComparator(CommonInstFormat(int(m.group(1), 16), None, None, None, None)))
+            return result
+
+    def _search(self, inst_comparator):
+        if inst_comparator is None: return None
+        if not isinstance(inst_comparator, InstComparator):
+            raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
+        if inst_comparator in self.instructions:
+            match = inst_comparator.match
+            return self.instructions.index(match)
+        return None
 
     def serialize(self):
         if not self.flags.execute:
