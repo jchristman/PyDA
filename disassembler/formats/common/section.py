@@ -1,6 +1,5 @@
 import struct
 from disassembler.formats.helpers.label import Label
-from disassembler.formats.helpers.models import DataModel
 from disassembler.formats.helpers import asmfeatures
 from disassembler.formats.helpers.stringfinder import StringFinder
 from disassembler.formats.common.inst import CommonInstFormat
@@ -20,7 +19,7 @@ class CommonSectionFormat:
         if not self.flags.execute:
             self.bytes = bytes # Bytes will only be set when this is a non-exec section
         self.virtual_address = vaddr
-        self.instructions = DataModel([], toFunc=CommonInstFormat.toString, lengthFunc=CommonInstFormat.length)
+        self.instructions = []
         self.functions = []
         self.labels = {}
         self.functions_reverse_lookup = {}
