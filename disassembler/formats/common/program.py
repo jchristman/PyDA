@@ -9,17 +9,13 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
     that will be used to access and mutate the information in the data structure.
     '''
     def __init__(self, program_info, settings_manager):
-        self.program_info = program_info
+        self.program_info = [line + '\n' for line in program_info.split('\n')]
         self.settings_manager = settings_manager
 
         self.initVars()
 
         self.executable_sections = []
         self.data_sections = []
-
-        for line in self.program_info.split('\n'):
-            self.executable_sections.append(line + '\n')
-        self.executable_sections.append(' \n')
 
     def initVars(self):
         self.PYDA_SECTION = self.settings_manager.get('context','pyda-section')
@@ -36,6 +32,7 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
 
     def addSection(self, section):
         if isinstance(section, CommonSectionFormat):
+            section.serialize() # This creates a string representation.
             if section.flags.execute:   self.executable_sections.append(section)
             else:                       self.data_sections.append(section)
     
@@ -58,16 +55,29 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         text_range = xrange(arg1, arg2, arg3)
         for i in text_range:
             if key == 'exe':
-                yield 'P_CTest ExeP_N\n'
+                yield self._get(i, self.executable_sections)
             elif key == 'data':
-                yield 'P_CTest DataP_N\n'
+                yield self._get(i, self.data_sections)
+
+    def _get(self, index, section_array):
+        offset = 0
+        for line in self.program_info:
+            if index == offset:
+                return line
+            offset += 1
+        for section in section_array:
+            length = len(section.string_rep)
+            if index < offset + length: # Then the item is inside this section
+                return section.string_rep[index - offset]
+            offset += length
+        return None
 
     def getitem(self, index, key=None):
         if index < len(self.text):
             if key == 'exe':
-                return 'P_CTest ExeP_N\n'
+                return self._get(index, self.executable_sections)
             elif key == 'data':
-                return 'P_CTest DataP_N\n'
+                return self._get(index, self.data_sections)
         else:
             return None
     '''
@@ -83,4 +93,9 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
     '''
 
     def length(self, key=None):
-        return 1000
+        if key == 'exe':
+            return len(self.program_info) + sum(len(section.string_rep) for section in self.executable_sections)
+        elif key == 'data':
+            return len(self.program_info) + sum(len(section.string_rep) for section in self.data_sections)
+        else: 
+            return 0

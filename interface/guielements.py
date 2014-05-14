@@ -459,7 +459,7 @@ class Textbox(Text):
             self.prev_start = start
             return
 
-        if self.data_model and self.data_model.length():
+        if self.data_model and self.data_model.length(key=self.key):
             if start > self.TCL_BUFFER_HIGH_CUTOFF and self.prev_start <= self.TCL_BUFFER_HIGH_CUTOFF:
                 self.append_lines = 1
             elif start < self.TCL_BUFFER_LOW_CUTOFF and self.prev_start >= self.TCL_BUFFER_LOW_CUTOFF:

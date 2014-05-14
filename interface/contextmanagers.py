@@ -45,7 +45,11 @@ class WidgetClickContextManager:
             self.processing_queue.queue.clear()
 
     def insert(self, index, line):
-        line = [x for x in line.split(self.separator) if not x == '']
+        try: line = [x for x in line.split(self.separator) if not x == '']
+        except: return
+        if len(line) == 1:
+            self.app.addCallback(self.processing_queue, self.widget.insert, (index, line[0]))
+            return
         if index == '1.0': line = line[::-1]
         for part in line:
             part_type = self.separator + part[0]

@@ -24,6 +24,8 @@ class CommonSectionFormat:
         self.labels = {}
         self.functions_reverse_lookup = {}
 
+        self.string_rep = []
+
     ### ADDING FUNCS ###
     def addInst(self, inst):
         if isinstance(inst, CommonInstFormat):
@@ -105,6 +107,12 @@ class CommonSectionFormat:
         self.strings_list = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
         return self
 
+    def serialize(self):
+        if not self.flags.execute:
+            self.string_rep = CommonDataSectionFormat.toString(self)
+        else:
+            self.string_rep = CommonExecutableSectionFormat.toString(self)
+
     ### ACCESSOR FUNCS ###
     def getBytes(self): # TODO: Have Frank explain the necessity of this.
         if self.flags.execute:
@@ -121,14 +129,12 @@ class CommonDataSectionFormat(CommonSectionFormat):
     are just CommonSectionFormat object
     '''
     @staticmethod
-    def length(section):
-        return 8 + int(1.02*len(section.getBytes())) # TODO: fix this estimate of the length
-
-    @staticmethod
     def toString(section): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
         '''
         Accessible as a static method. CommonDataSectionFormat.toString(section)
         '''
+        string_array = []
+
         fields = {
             "Section name": section.name,
             "Properties": str(section.flags),
@@ -144,8 +150,7 @@ class CommonDataSectionFormat(CommonSectionFormat):
             section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
         section_info += "#"*(max_length+3) + "\n \n"
 
-        for line in section_info.split('\n'):
-            yield line + '\n'
+        string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
         bytes = section.getBytes()
         index = 0
@@ -188,9 +193,12 @@ class CommonDataSectionFormat(CommonSectionFormat):
                     byte, section.program.PYDA_ENDL)
                 index += 1
 
-            yield data
+            string_array += [string + '\n' for string in data.split('\n') if not string == '']
 
-        yield ' \n'
+        if len(bytes) > 0:
+            string_array += ['\n']
+
+        return string_array
 
 class CommonExecutableSectionFormat(CommonSectionFormat):
     '''
@@ -198,14 +206,12 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
     are just CommonExecutableSectionFormat object
     '''
     @staticmethod
-    def length(section):
-        return 9 + len(section.instructions) + 1 # The length of the header in lines
-
-    @staticmethod
     def toString(section):
         '''
         Accessible as a static method. CommonSectionFormat.toString(section)
         '''
+        string_array = []
+
         fields = {
             "Section name": section.name,
             "Properties": str(section.flags),
@@ -222,8 +228,7 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
             section_info += ("   {:<%d}\n" % max_length).format(x + ": " + fields[x])
         section_info += "#"*(max_length+3) + "\n \n"
 
-        for line in section_info.split('\n'):
-            yield line + '\n'
+        string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
         for inst in section.instructions:
             data = ''
@@ -248,6 +253,9 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
                     section.program.PYDA_ENDL
                     )
 
-            yield data
-            
-        yield ' \n' # Yield one last new line for spacing
+            string_array += [string + '\n' for string in data.split('\n') if not string == '']
+        
+        if len(section.instructions) > 0:
+            string_array += ['\n']
+
+        return string_array

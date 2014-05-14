@@ -258,7 +258,6 @@ class PyDAInterface(Frame):
         if isinstance(disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
             self.debug('Processing Executable Sections')
-            data = disassembly.program_info + self.PYDA_ENDL + '\n'
             ex_secs = disassembly.getExecutableSections()
             for sec in ex_secs:
                 if isinstance(sec, CommonSectionFormat):
@@ -269,7 +268,6 @@ class PyDAInterface(Frame):
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (disassembly, 'exe'))
 
             self.debug('Processing Data Sections')
-            data = disassembly.program_info + self.PYDA_ENDL + '\n'
             data_secs = disassembly.getDataSections() # Get the data model for the textbox
             for sec in data_secs:
                 if isinstance(sec, CommonSectionFormat):
