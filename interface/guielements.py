@@ -5,7 +5,7 @@ This file contains many classes to make the code in the main interface much more
 It also adds many convenience functions to code to make access easier.
 '''
 
-from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END
+from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END, DISABLED, NORMAL
 from ttk import Progressbar, Notebook as nb
 
 START = '1.0'
@@ -374,6 +374,7 @@ class Textbox(Text):
         self.MAX_LINES_JUMP = max_lines_jump
         self.reset()
         self.data_model = data_model
+        self.config(state=DISABLED)
 
     def reset(self):
         self.current_data_offset = 0
@@ -413,13 +414,38 @@ class Textbox(Text):
             if self.current_data_offset < 0:
                 self.current_data_offset = 0
         start_index = self.current_data_offset
-
+        
         self.clear()
         self.drawLines()
 
     def drawLines(self):
         for line in self.data_model.get(self.TCL_BUFFER_SIZE):
             self.insertBottomLine(line)
+
+    #TODO: Make this more efficient. Toggles twice every time you insert a line
+    def insert(self, *args): 
+        flag = True
+        if self.config()["state"] == NORMAL:
+            flag = False
+        else:
+            self.config(state=NORMAL)
+
+        Text.insert(self, *args)
+        
+        if flag:
+            self.config(state=DISABLED)
+
+    def delete(self, *args): 
+        flag = True
+        if self.config()["state"] == NORMAL:
+            flag = False
+        else:
+            self.config(state=NORMAL)
+
+        Text.delete(self, *args)
+        
+        if flag:
+            self.config(state=DISABLED)
 
     def insertTopLine(self, line):
         if self.context_manager:
