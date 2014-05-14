@@ -1,9 +1,9 @@
-from Tkinter import Frame
+from Tkinter import *
 from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.helpers.models import TextModel
-from contextmanagers import WidgetClickContextManager
+from contextmanagers import WidgetContextManager
 from redirectors import StdoutRedirector
 from platform import system
 import sys
@@ -142,6 +142,8 @@ class PyDAInterface(Frame):
         # Set up the context menus
         self.section_context_menu = ContextMenu([('Copy', self.copyString)])
         self.address_context_menu = ContextMenu([('Copy String', self.copyString), ('Copy Value', self.copyValue)])
+        self.comment_context_menu = ContextMenu([(';  Comment', self.comment)])
+        self.label_context_menu   = ContextMenu([('Rename Label', self.renameLabel)])
         
         # Force the mouse to always have focus
         self.tk_focusFollowsMouse()
@@ -151,24 +153,26 @@ class PyDAInterface(Frame):
 
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbox
-        self.disassembly_textbox_context_manager = WidgetClickContextManager(
+        self.disassembly_textbox_context_manager = WidgetContextManager(
                 self.app, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', self.section_context_menu), 
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
                     (self.PYDA_MNEMONIC, 'blue', None), 
                     (self.PYDA_OP_STR, 'darkblue', None), 
-                    (self.PYDA_COMMENT, 'darkgreen', None),
-                    (self.PYDA_LABEL, 'saddle brown', None),
+                    (self.PYDA_COMMENT, 'darkgreen', self.comment_context_menu),
+                    (self.PYDA_LABEL, 'saddle brown', self.label_context_menu),
                     (self.PYDA_BYTES, 'dark gray', None),
                     (self.PYDA_GENERIC, 'black', None),
-                    (self.PYDA_ENDL, 'black', None)])
+                    (self.PYDA_ENDL, 'black', self.comment_context_menu)], )
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
+        self.disassembly_textbox.bind('<Key>', self.keyHandler)
+
         data_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the data sections textbox
-        self.data_textbox_context_manager = WidgetClickContextManager(
+        self.data_textbox_context_manager = WidgetContextManager(
                 self.app, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP, 
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', None), 
@@ -222,6 +226,50 @@ class PyDAInterface(Frame):
 
     def copyValue(self, *args):
         print 'Copy Value Selected', args
+
+    def comment(self, *args):
+        print 'Comment selected', args
+
+        tl = Toplevel(master=self.app)
+        tl.title("Insert Comment")
+
+        frame1 = Frame(tl)
+        frame1.pack(side=TOP)
+        frame2 = Frame(tl)
+        frame2.pack()
+        frame3 = Frame(tl)
+        frame3.pack(side=BOTTOM)
+
+        msg = Label(frame1, text="Please enter your comment:", height=0, width=50)
+        msg.pack()
+
+        e = Entry(frame2)
+        e.pack(side=LEFT)
+
+        def addComment(*args):
+            print 'Comment:', e.get()
+            tl.destroy()
+
+        button1 = Button(frame2, text="Add Comment", command=addComment)
+        button1.pack(side=RIGHT)
+
+        e.focus()
+        e.bind('<Return>', addComment)
+
+        tl.grab_set() # Keeps this toplevel on top
+
+    def keyHandler(self, event):
+        print 'pressed:', repr(event.char)
+        if event.char == ";":
+            self.comment(event)
+        else: 
+            #TODO: could do some things to retrieve the entire line here. Figure out what we want
+            line, _ = self.disassembly_textbox.index('insert').split('.')
+            # print line
+        return "break"
+
+    def renameLabel(self, *args):
+        print 'Rename selected', args
 
     def functionDoubleClick(self, event):
         widget = event.widget

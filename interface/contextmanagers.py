@@ -1,7 +1,7 @@
 from Tkinter import CURRENT
 from tkFont import Font
 
-class WidgetClickContextManager:
+class WidgetContextManager:
     def __init__(self, app, processing_queue, widget, separator, begin_line, click_string, tags):
         self.app = app
         self.processing_queue = processing_queue
@@ -46,8 +46,8 @@ class WidgetClickContextManager:
 
             ranges = self.widget.tag_ranges(tags[1])
             clicked_data = self.widget.get(ranges[0], ranges[1])
-            index = self.widget.data_model.search(clicked_data, key=self.widget.key)
-            print 'Data is at index %i of data model' % index
+            # index = self.widget.data_model.search(clicked_data, key=self.widget.key)
+            # print 'Data is at index %i of data model' % index
             menu = self.tag_data[tags[0]][1]
             menu.context = clicked_data
             menu.post(event.x_root + 5, event.y_root + 5)
