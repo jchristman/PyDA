@@ -110,3 +110,9 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
             return len(self.program_info) + sum(len(section.string_rep) for section in self.data_sections)
         else: 
             return 0
+
+    def render(self):
+        for section in self.executable_sections:
+            section.serialize()
+        for section in self.data_sections:
+            section.serialize()

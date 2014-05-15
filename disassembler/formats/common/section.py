@@ -113,9 +113,9 @@ class CommonSectionFormat:
         This function will return some representation of the string input in a format
         that the search function will understand - a CommonInstFormat.
         '''
-        m = re.search(r'^0x([a-fA-F0-9]+)', string)
+        m = re.search(r'0x([a-fA-F0-9]+)', string)
         if m:
-            result = self._search(AddressComparator(CommonInstFormat(int(m.group(1), 16), None, None, None, None)))
+            result = self._search(AddressComparator(CommonInstFormat(int(m.group(0), 16), None, None, None, None)))
             return result
 
     def _search(self, inst_comparator):
@@ -124,7 +124,8 @@ class CommonSectionFormat:
             raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
         if inst_comparator in self.instructions:
             match = inst_comparator.match
-            return self.instructions.index(match)
+            return match
+            # return self.instructions.index(match)
         return None
 
     def serialize(self):
@@ -134,7 +135,7 @@ class CommonSectionFormat:
             self.string_rep = CommonExecutableSectionFormat.toString(self)
 
     ### ACCESSOR FUNCS ###
-    def getBytes(self): # TODO: Have Frank explain the necessity of this.
+    def getBytes(self): 
         if self.flags.execute:
             bytes = bytearray()
             for inst in self.instructions:

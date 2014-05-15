@@ -2,6 +2,7 @@ from Tkinter import *
 from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
+from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.helpers.models import TextModel
 from contextmanagers import WidgetContextManager
 from redirectors import StdoutRedirector
@@ -13,6 +14,7 @@ class PyDAInterface(Frame):
     def __init__(self, app):
         Frame.__init__(self, app)
         self.app = app
+        self.disassembly = None
         self.main_queue = self.app.createCallbackQueue()
         self.initVars()
         self.initUI()
@@ -227,7 +229,14 @@ class PyDAInterface(Frame):
     def copyValue(self, *args):
         print 'Copy Value Selected', args
 
+    def getCurrentLine(self):
+        line, _ = self.disassembly_textbox.index('insert').split('.')
+        contents = self.disassembly_textbox.get(line + '.0', END)
+        return contents.splitlines()[0]
+
     def comment(self, *args):
+        if self.disassembly is None:
+            return
         print 'Comment selected', args
 
         tl = Toplevel(master=self.app)
@@ -248,13 +257,23 @@ class PyDAInterface(Frame):
 
         def addComment(*args):
             print 'Comment:', e.get()
+            comment = e.get()
+            contents = self.getCurrentLine()
+            print 'line content:',contents
+            instruction = self.disassembly.search(contents, key="exe")
+            if not instruction is CommonInstFormat:
+                instruction.comment = comment
+                print "set instruction's comment to:",comment
+                self.disassembly.render()
+                self.disassembly_textbox.redraw()
+
             tl.destroy()
 
         button1 = Button(frame2, text="Add Comment", command=addComment)
         button1.pack(side=RIGHT)
 
         e.focus()
-        e.bind('<Return>', addComment)
+        e.bind('<Return>', addComment) # Bind return to submit
 
         tl.grab_set() # Keeps this toplevel on top
 
@@ -262,10 +281,6 @@ class PyDAInterface(Frame):
         print 'pressed:', repr(event.char)
         if event.char == ";":
             self.comment(event)
-        else: 
-            #TODO: could do some things to retrieve the entire line here. Figure out what we want
-            line, _ = self.disassembly_textbox.index('insert').split('.')
-            # print line
         return "break"
 
     def renameLabel(self, *args):
@@ -299,31 +314,31 @@ class PyDAInterface(Frame):
         self.app.disassembler.load(binary, filename=file_name)
         self.debug('Disassembling as %s' % self.app.disassembler.getFileType())
         self.status('Disassembling as %s' % self.app.disassembler.getFileType())
-        disassembly = self.app.disassembler.disassemble()
+        self.disassembly = self.app.disassembler.disassemble()
         self.debug('Finished disassembling')
         self.status('Finished disassembling')
-        self.processDisassembly(disassembly)
+        self.processDisassembly()
         
-    def processDisassembly(self, disassembly):
-        if isinstance(disassembly, CommonProgramDisassemblyFormat):
+    def processDisassembly(self):
+        if isinstance(self.disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
             self.debug('Processing Executable Sections')
-            ex_secs = disassembly.getExecutableSections()
+            ex_secs = self.disassembly.getExecutableSections()
             for sec in ex_secs:
                 if isinstance(sec, CommonSectionFormat):
                     for func in sec.functions:
                         self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
                     for string in sec.strings_list:
                         self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
-            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (disassembly, 'exe'))
+            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.disassembly, 'exe'))
 
             self.debug('Processing Data Sections')
-            data_secs = disassembly.getDataSections() # Get the data model for the textbox
+            data_secs = self.disassembly.getDataSections() # Get the data model for the textbox
             for sec in data_secs:
                 if isinstance(sec, CommonSectionFormat):
                     for string in sec.strings_list:
                         self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
-            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (disassembly, 'data', self.progress_bar))
+            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.disassembly, 'data', self.progress_bar))
             self.debug('Done')
             self.status('Done')
             self.progress_bar.stop()
