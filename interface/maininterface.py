@@ -1,5 +1,5 @@
 from Tkinter import *
-from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu
+from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu, Textbox
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
@@ -144,8 +144,10 @@ class PyDAInterface(Frame):
         # Set up the context menus
         self.section_context_menu = ContextMenu([('Copy', self.copyString)])
         self.address_context_menu = ContextMenu([('Copy String', self.copyString), ('Copy Value', self.copyValue)])
-        self.comment_context_menu = ContextMenu([(';  Comment', self.comment)])
-        self.label_context_menu   = ContextMenu([('Rename Label', self.renameLabel)])
+        self.disass_comment_context_menu = ContextMenu([(';  Comment', self.disassComment)])
+        self.data_comment_context_menu = ContextMenu([(';  Comment', self.dataComment)])
+        self.disass_label_context_menu   = ContextMenu([('n  Rename Label', self.disassRenameLabel)])
+        self.data_label_context_menu   = ContextMenu([('n  Rename Label', self.dataRenameLabel)])
         
         # Force the mouse to always have focus
         self.tk_focusFollowsMouse()
@@ -162,11 +164,11 @@ class PyDAInterface(Frame):
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
                     (self.PYDA_MNEMONIC, 'blue', None), 
                     (self.PYDA_OP_STR, 'darkblue', None), 
-                    (self.PYDA_COMMENT, 'darkgreen', self.comment_context_menu),
-                    (self.PYDA_LABEL, 'saddle brown', self.label_context_menu),
+                    (self.PYDA_COMMENT, 'darkgreen', self.disass_comment_context_menu),
+                    (self.PYDA_LABEL, 'saddle brown', self.disass_label_context_menu),
                     (self.PYDA_BYTES, 'dark gray', None),
                     (self.PYDA_GENERIC, 'black', None),
-                    (self.PYDA_ENDL, 'black', self.comment_context_menu)], )
+                    (self.PYDA_ENDL, 'black', self.disass_comment_context_menu)], )
 
         self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
 
@@ -180,13 +182,15 @@ class PyDAInterface(Frame):
                     (self.PYDA_SECTION, 'darkgreen', None), 
                     (self.PYDA_MNEMONIC, 'blue', None), 
                     (self.PYDA_OP_STR, 'darkblue', None), 
-                    (self.PYDA_COMMENT, 'darkgreen', None),
-                    (self.PYDA_LABEL, 'saddle brown', None), 
+                    (self.PYDA_COMMENT, 'darkgreen', self.data_comment_context_menu),
+                    (self.PYDA_LABEL, 'saddle brown', self.data_label_context_menu), 
                     (self.PYDA_BYTES, 'dark gray', None), 
                     (self.PYDA_GENERIC, 'black', None), 
-                    (self.PYDA_ENDL, 'black', None)])
+                    (self.PYDA_ENDL, 'black', self.data_comment_context_menu)])
 
         self.data_sections_textbox.context_manager = self.data_textbox_context_manager
+
+        self.data_sections_textbox.bind('<Key>', self.keyHandler)
 
         # Redirect stdout to the debug window
         if self.REDIR_STDOUT:
@@ -229,15 +233,30 @@ class PyDAInterface(Frame):
     def copyValue(self, *args):
         print 'Copy Value Selected', args
 
-    def getCurrentLine(self):
-        line, _ = self.disassembly_textbox.index('insert').split('.')
-        contents = self.disassembly_textbox.get(line + '.0', END)
+    def getCurrentRowIndex(self, textbox):
+        line, _ = textbox.index('insert').split('.')
+        return line + '.0'
+
+    def getCurrentLine(self, textbox):
+        index = self.getCurrentRowIndex(textbox)
+        contents = textbox.get(index, index + " lineend")
         return contents.splitlines()[0]
 
-    def comment(self, *args):
+    def disassComment(self, event):
+        self.comment(self.disassembly_textbox)
+
+    def dataComment(self, event):
+        self.comment(self.data_sections_textbox)
+
+    def comment(self, event):
         if self.disassembly is None:
             return
-        print 'Comment selected', args
+
+        textbox = None
+        if isinstance(event, Textbox):
+            textbox = event
+        else:
+            textbox = event.widget
 
         tl = Toplevel(master=self.app)
         tl.title("Insert Comment")
@@ -249,23 +268,20 @@ class PyDAInterface(Frame):
         frame3 = Frame(tl)
         frame3.pack(side=BOTTOM)
 
-        msg = Label(frame1, text="Please enter your comment:", height=0, width=50)
+        msg = Label(frame1, text="Please enter a comment:", height=0, width=50)
         msg.pack()
 
         e = Entry(frame2)
         e.pack(side=LEFT)
 
         def addComment(*args):
-            print 'Comment:', e.get()
+            # print 'Comment:', e.get()
             comment = e.get()
-            contents = self.getCurrentLine()
+            contents = self.getCurrentLine(textbox)
             print 'line content:',contents
-            instruction = self.disassembly.search(contents, key="exe")
-            if not instruction is CommonInstFormat:
-                instruction.comment = comment
-                print "set instruction's comment to:",comment
-                self.disassembly.render()
-                self.disassembly_textbox.redraw()
+            result = self.disassembly.setCommentForLine(contents, comment)
+            if result:
+                textbox.redrawLine(self.getCurrentRowIndex(textbox))
 
             tl.destroy()
 
@@ -277,26 +293,103 @@ class PyDAInterface(Frame):
 
         tl.grab_set() # Keeps this toplevel on top
 
-    def keyHandler(self, event):
-        print 'pressed:', repr(event.char)
-        if event.char == ";":
-            self.comment(event)
-        return "break"
+    def disassRenameLabel(self, event):
+        self.renameLabel(self.disassembly_textbox)
 
-    def renameLabel(self, *args):
-        print 'Rename selected', args
+    def dataRenameLabel(self, event):
+        self.dataRenameLabel(self.data_sections_textbox)
+
+    def renameLabel(self, event):
+        print 'Rename selected'
+        if self.disassembly is None:
+            return
+
+        textbox = None
+        if isinstance(event, Textbox):
+            textbox = event
+        else:
+            textbox = event.widget
+
+        tl = Toplevel(master=self.app)
+        tl.title('Rename Label')
+
+        frame1 = Frame(tl)
+        frame1.pack(side=TOP)
+        frame2 = Frame(tl)
+        frame2.pack()
+        frame3 = Frame(tl)
+        frame3.pack(side=BOTTOM)
+
+        msg = Label(frame1, text='Please enter a new name:', height=0, width=50)
+        msg.pack()
+
+        e = Entry(frame2)
+        e.pack(side=LEFT)
+
+        def rename(*args):
+            # print 'Comment:', e.get()
+            new_name = e.get()
+            contents = self.getCurrentLine(textbox)
+            # print 'line content:',contents
+            result = self.disassembly.renameLabel(contents, new_name)
+            if result:
+                textbox.redrawLine(self.getCurrentRowIndex(textbox))
+                self.functions_listbox.delete(0, 'end')
+                self.populateFunctions()
+                self.populateStrings()
+
+            tl.destroy()
+
+        button1 = Button(frame2, text="Rename", command=rename)
+        button1.pack(side=RIGHT)
+
+        e.focus()
+        e.bind('<Return>', rename) # Bind return to submit
+
+        tl.grab_set() # Keeps this toplevel on top
+
+    def controlKeyHeld(self, event):
+        return event.state & 0x004 # see here: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/event-handlers.html
+
+    def keyHandler(self, event):
+        # print 'pressed:',repr(event.char)
+        # print 'sym:',repr(event.keysym)
+
+        c = event.char
+        if c == ';':
+            self.comment(event)
+        elif c == 'n' or c == 'N':
+            self.renameLabel(event)
+        elif event.keysym in ['Up', 'Down', 'Left', 'Right', 'Next', 'Prior', 'End', 'Home']:
+            return
+        elif event.keysym == 'c' and self.controlKeyHeld(event):
+            self.app.clipboard_clear()
+            self.app.clipboard_append(event.widget.selection_get())
+
+        # Otherwise, don't let this key go to the screen
+        return 'break'
+
 
     def functionDoubleClick(self, event):
         widget = event.widget
         selection = widget.curselection()
-        value = widget.get(selection[0])
-        print 'selection:',selection,', value:',value
+        name = widget.get(selection[0])
+        index = self.disassembly.getLabelIndex(name, key="exe")
+        print "name: '%s'" % name
+        print "index:",index
+        fraction = index / float(self.disassembly.length(key="exe"))
+        print "fraction:",fraction
+        self.disassembly_textbox.changeView("moveto", fraction)
+
 
     def stringDoubleClick(self, event):
         widget = event.widget
         selection = widget.curselection()
-        value = widget.get(selection[0])
-        print 'selection:',selection,', value:',value
+        name = widget.get(selection[0])
+        index = self.disassembly.getLabelIndex(name, key="data")
+        print "name: '%s'" % name
+        print "index:",index
+
 
     def importFile(self):
         self.progress_bar.start()
@@ -318,27 +411,29 @@ class PyDAInterface(Frame):
         self.debug('Finished disassembling')
         self.status('Finished disassembling')
         self.processDisassembly()
-        
+
+    def populateFunctions(self):
+        funcs = self.disassembly.getFuncs()
+        for func in funcs:
+            self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
+                    
+    def populateStrings(self):
+        strings = self.disassembly.getStrings()
+        for string in strings:
+            self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.name))
+
     def processDisassembly(self):
         if isinstance(self.disassembly, CommonProgramDisassemblyFormat):
             self.status('Processing Data')
-            self.debug('Processing Executable Sections')
-            ex_secs = self.disassembly.getExecutableSections()
-            for sec in ex_secs:
-                if isinstance(sec, CommonSectionFormat):
-                    for func in sec.functions:
-                        self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
-                    for string in sec.strings_list:
-                        self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
-            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.disassembly, 'exe'))
 
-            self.debug('Processing Data Sections')
-            data_secs = self.disassembly.getDataSections() # Get the data model for the textbox
-            for sec in data_secs:
-                if isinstance(sec, CommonSectionFormat):
-                    for string in sec.strings_list:
-                        self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.contents))
+            self.debug('Processing Functions')
+            self.populateFunctions()
+            self.debug('Processing Strings')
+            self.populateStrings()
+
+            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.disassembly, 'exe'))
             self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.disassembly, 'data', self.progress_bar))
+            
             self.debug('Done')
             self.status('Done')
             self.progress_bar.stop()

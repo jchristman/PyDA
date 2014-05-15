@@ -3,6 +3,7 @@ from disassembler.formats.helpers.label import Label
 from disassembler.formats.helpers import asmfeatures
 from disassembler.formats.helpers.stringfinder import StringFinder
 from disassembler.formats.helpers.comparators import InstComparator, AddressComparator, MnemonicComparator, OpStrComparator, BytesComparator, CommentComparator
+from disassembler.formats.helpers.comparators import LabelComparator, LabelAddressComparator, LabelNameComparator, LabelItemComparator
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.common.function import CommonFunctionFormat
 
@@ -22,6 +23,7 @@ class CommonSectionFormat:
         self.virtual_address = vaddr
         self.instructions = []
         self.functions = []
+        self.strings = {}
         self.labels = {}
         self.functions_reverse_lookup = {}
 
@@ -37,16 +39,16 @@ class CommonSectionFormat:
         self.functions.append(func)
         self.functions_reverse_lookup[func.start_address] = func
     
-    def addLabel(self, address, name, window_location=None, xrefs=None):
-        self.labels[address] = Label(address, name, window_location, xrefs)
+    def addLabel(self, address, name, item, xrefs=None):
+        self.labels[address] = Label(address, name, item, xrefs)
     
     def addStringLabels(self):
         for addr in self.strings.keys():
-            self.addLabel(addr, self.strings[addr].name)
+            self.addLabel(addr, self.strings[addr].name, self.strings[addr])
 
     def addFunctionLabels(self):
         for func in self.functions:
-            self.addLabel(func.start_address, func.name)
+            self.addLabel(func.start_address, func.name, func)
 
     ### SEARCH FUNCS ###
     def doesInstSequenceMatch(self, inst_sequence, disass_index):
@@ -91,11 +93,11 @@ class CommonSectionFormat:
             else:
                 if True in [self.doesInstSequenceMatch(epilogue_seq, i) for epilogue_seq in asmfeatures.epilogues[self.arch][self.mode]]:
                     looking_for_prologue = True
-                    self.addFunction(function_start, i, 'func_%i' % len(self.functions))
+                    self.addFunction(function_start, i, self.name + '_func_%i' % len(self.functions))
 
         # Tidy up uncompleted functions
         if not looking_for_prologue:
-            self.addFunction(function_start, len(self.instructions)-1, 'func_%i' % len(self.functions))
+            self.addFunction(function_start, len(self.instructions)-1, self.name+'_func_%i' % len(self.functions))
         
     def searchForStrings(self):
         bytes = self.getBytes()
@@ -105,13 +107,14 @@ class CommonSectionFormat:
     def sort(self):
         self.instructions = sorted(self.instructions, key=lambda x: x.address)
         self.functions = sorted(self.functions, key=lambda x: x.start_address)
-        self.strings_list = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
+        # self.strings = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
         return self
     
     def search(self, string):
         '''
-        This function will return some representation of the string input in a format
-        that the search function will understand - a CommonInstFormat.
+        This function will return the index of the found object, as well
+        as some representation of the string input in a format
+        that the search function will understand - a CommonInstFormat
         '''
         m = re.search(r'0x([a-fA-F0-9]+)', string)
         if m:
@@ -119,13 +122,35 @@ class CommonSectionFormat:
             return result
 
     def _search(self, inst_comparator):
-        if inst_comparator is None: return None
+        if inst_comparator is None: 
+            return None
         if not isinstance(inst_comparator, InstComparator):
             raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
         if inst_comparator in self.instructions:
             match = inst_comparator.match
-            return match
-            # return self.instructions.index(match)
+            for index, line in enumerate(self.string_rep):
+                # If the address mnemonic and op_str are in this line then we found it
+                if '0x%x' % match.address in line and match.mnemonic in line and match.op_str in line:
+                    break
+                return (self.instructions.index(match), match)
+        return None
+
+    def getLabelIndex(self, name):
+        result = self._getLabelIndex(LabelNameComparator(Label(None, name, None)))
+        return result
+
+    def _getLabelIndex(self, label_comparator):
+        if label_comparator is None: 
+            return None
+        if not isinstance(label_comparator, LabelComparator):
+            raise ImproperParameterException('Search method only accepts LabelComparator as a parameter')
+        if label_comparator in self.labels.values():
+            match = label_comparator.match
+            for index, line in enumerate(self.string_rep):
+                # If the address and name is in this line then we found it
+                # if '0x%x' % match.address in line and match.name + ':' in line: 
+                if match.name + ':' in line:   
+                    return index
         return None
 
     def serialize(self):

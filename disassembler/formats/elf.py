@@ -103,6 +103,7 @@ class ELF:
 
     def disassemble(self, settings_manager):
         md = capstone.Cs(self.arch, self.bin_class)
+            
         disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo(), settings_manager)
         for s in self.sections:
             section = None

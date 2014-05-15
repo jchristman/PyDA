@@ -1,7 +1,9 @@
 import struct
+import re
 from disassembler.formats.helpers.label import Label
 from disassembler.formats.helpers.models import AbstractDataModel
 from disassembler.formats.common.section import CommonSectionFormat, CommonExecutableSectionFormat, CommonDataSectionFormat
+from disassembler.formats.common.inst import CommonInstFormat
 
 class CommonProgramDisassemblyFormat(AbstractDataModel):
     '''
@@ -48,6 +50,25 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         Return the data model
         '''
         return self.data_sections
+
+    def getFuncs(self):
+        funcs = []
+        ex_secs = self.getExecutableSections()
+        for sec in ex_secs:
+            if isinstance(sec, CommonSectionFormat):
+                funcs += sec.functions
+
+        return funcs
+
+    def getStrings(self):
+        strings = []
+
+        secs = self.getExecutableSections() + self.getDataSections()
+        for sec in secs:
+            if isinstance(sec, CommonSectionFormat):
+                strings += sec.strings.values()
+
+        return strings
 
     def get(self, arg1, arg2=None, arg3=1, key=None):
         if arg2 is None:
@@ -99,7 +120,9 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         for section in sections:
             result = section.search(string)
             if result:
-                return result
+                index, obj = result
+                index += offset
+                return (index, obj)
             offset += len(section.string_rep)
         return None
 
@@ -111,8 +134,49 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         else: 
             return 0
 
+    def getLabelIndex(self, name, key=None):
+        if key == 'exe':
+            return self._getLabelIndex(name, self.executable_sections)
+        elif key == 'data':
+            return self._getLabelIndex(name, self.data_sections)
+        return None
+
+    def _getLabelIndex(self, name, sections):
+        offset = len(self.program_info)
+        for section in sections:
+            result = section.getLabelIndex(name)
+            if result:
+                return result + offset
+            offset += len(section.string_rep)
+        return None
+
     def render(self):
         for section in self.executable_sections:
             section.serialize()
         for section in self.data_sections:
             section.serialize()
+
+    def setCommentForLine(self, line_contents, comment):
+        _, instruction = self.search(line_contents, key="exe")
+        if isinstance(instruction, CommonInstFormat):
+            instruction.comment = comment
+            print "set instruction's comment to:",comment
+            self.render()
+            return True
+        return False
+
+    def renameLabel(self, line_contents, new_name):
+        m = re.search(r'0x([a-fA-F0-9]+)', line_contents)
+        label_changed = False
+        if m:
+            addr = int(m.group(0),16)
+            for sec in self.executable_sections + self.data_sections:
+                if addr in sec.labels:
+                    label = sec.labels[addr]
+                    label.name = new_name
+                    label.item.name = new_name
+                    label_changed = True
+                    self.render()
+                    break
+            
+        return label_changed

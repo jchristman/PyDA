@@ -6,10 +6,10 @@ tag within disassembled code for easy reference.
 '''
 
 class Label:
-    def __init__(self, address, name, window_location=None, xrefs=None):
+    def __init__(self, address, name, item, xrefs=None):
         self.address = address
         self.name = name
-        self.window_location = window_location
+        self.item = item
         self.xrefs = [] if xrefs is None else xrefs
 
     def __str__(self):

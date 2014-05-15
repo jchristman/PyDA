@@ -256,9 +256,9 @@ class PE:
             s["name"] = s["name"].replace('\x00','')
             section = CommonSectionFormat(disassembly, s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
             section.searchForStrings()
-            section.searchForFunctions()
+            # section.searchForFunctions()
             section.addStringLabels()
-            section.addFunctionLabels()
+            # section.addFunctionLabels()
             disassembly.addSection(section.sort())
 
         return disassembly

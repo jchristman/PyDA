@@ -424,31 +424,12 @@ class Textbox(Text):
         for line in self.data_model.get(self.TCL_BUFFER_SIZE, key=self.key):
             self.insertBottomLine(line)
 
-    #TODO: Make this more efficient. Toggles twice every time you insert a line
-    def insert(self, *args): 
-        # flag = True
-        # if self.config()["state"] == NORMAL:
-        #     flag = False
-        # else:
-        #     self.config(state=NORMAL)
-        
-
-        Text.insert(self, *args)
-        
-        # if flag:
-        #     self.config(state=DISABLED)
-
-    # def delete(self, *args): 
-    #     flag = True
-    #     if self.config()["state"] == NORMAL:
-    #         flag = False
-    #     else:
-    #         self.config(state=NORMAL)
-
-    #     Text.delete(self, *args)
-        
-    #     if flag:
-    #         self.config(state=DISABLED)
+    def redrawLine(self, index):
+        self.delete(index, index + ' lineend')
+        start = self.current_data_offset + int(index.split('.')[0]) - 1
+        print "current_data_offset",self.current_data_offset
+        line = self.data_model.get(start, start+1, key=self.key).next().rstrip()
+        self.context_manager.insert(index + ' lineend', line)
 
     def insertTopLine(self, line):
         if self.context_manager:
