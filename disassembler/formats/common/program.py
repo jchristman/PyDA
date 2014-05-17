@@ -157,10 +157,12 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
             section.serialize()
 
     def setCommentForLine(self, line_contents, comment):
-        _, instruction = self.search(line_contents, key="exe")
+        result = self.search(line_contents, key="exe")
+        if not result:
+            return False
+        _, instruction = result
         if isinstance(instruction, CommonInstFormat):
             instruction.comment = comment
-            print "set instruction's comment to:",comment
             self.render()
             return True
         return False

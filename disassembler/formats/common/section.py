@@ -130,7 +130,8 @@ class CommonSectionFormat:
             match = inst_comparator.match
             for index, line in enumerate(self.string_rep):
                 # If the address mnemonic and op_str are in this line then we found it
-                if '0x%x' % match.address in line and match.mnemonic in line and match.op_str in line:
+                features = ['0x%x' % match.address, match.mnemonic, match.op_str]
+                if all((x in line for x in features)):
                     break
                 return (self.instructions.index(match), match)
         return None
@@ -147,9 +148,7 @@ class CommonSectionFormat:
         if label_comparator in self.labels.values():
             match = label_comparator.match
             for index, line in enumerate(self.string_rep):
-                # If the address and name is in this line then we found it
-                # if '0x%x' % match.address in line and match.name + ':' in line: 
-                if match.name + ':' in line:   
+                if match.name + ':' in line: # all label declarations end in a ":"
                     return index
         return None
 

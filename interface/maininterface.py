@@ -1,5 +1,5 @@
 from Tkinter import *
-from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu, Textbox
+from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu, Textbox, Location
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
@@ -44,6 +44,8 @@ class PyDAInterface(Frame):
         self.MIN_STRING_SIZE = self.app.settings_manager.getint('disassembly','min-string-size')
 
     def initUI(self):
+        self.locationStack = list()
+
         self.app.title("PyDA")
 
         # Set up the Menu Bar
@@ -278,10 +280,10 @@ class PyDAInterface(Frame):
             # print 'Comment:', e.get()
             comment = e.get()
             contents = self.getCurrentLine(textbox)
-            print 'line content:',contents
             result = self.disassembly.setCommentForLine(contents, comment)
             if result:
-                textbox.redrawLine(self.getCurrentRowIndex(textbox))
+                index = self.getCurrentRowIndex(textbox)
+                textbox.redrawLine(index)
 
             tl.destroy()
 
@@ -300,7 +302,6 @@ class PyDAInterface(Frame):
         self.dataRenameLabel(self.data_sections_textbox)
 
     def renameLabel(self, event):
-        print 'Rename selected'
         if self.disassembly is None:
             return
 
@@ -327,14 +328,13 @@ class PyDAInterface(Frame):
         e.pack(side=LEFT)
 
         def rename(*args):
-            # print 'Comment:', e.get()
             new_name = e.get()
             contents = self.getCurrentLine(textbox)
-            # print 'line content:',contents
             result = self.disassembly.renameLabel(contents, new_name)
             if result:
                 textbox.redrawLine(self.getCurrentRowIndex(textbox))
                 self.functions_listbox.delete(0, 'end')
+                self.strings_listbox.delete(0, 'end')
                 self.populateFunctions()
                 self.populateStrings()
 
@@ -352,8 +352,7 @@ class PyDAInterface(Frame):
         return event.state & 0x004 # see here: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/event-handlers.html
 
     def keyHandler(self, event):
-        # print 'pressed:',repr(event.char)
-        # print 'sym:',repr(event.keysym)
+        # print event.keysym
 
         c = event.char
         if c == ';':
@@ -362,34 +361,75 @@ class PyDAInterface(Frame):
             self.renameLabel(event)
         elif event.keysym in ['Up', 'Down', 'Left', 'Right', 'Next', 'Prior', 'End', 'Home']:
             return
-        elif event.keysym == 'c' and self.controlKeyHeld(event):
-            self.app.clipboard_clear()
-            self.app.clipboard_append(event.widget.selection_get())
+        elif event.keysym == 'Escape':
+            self.popLastLocation()
+        elif self.controlKeyHeld(event):
+            if event.keysym == 'c':
+                self.app.clipboard_clear()
+                self.app.clipboard_append(event.widget.selection_get())
+            elif event.keysym == 'a':
+                textbox = event.widget
+                textbox.tag_add('sel', '1.0', 'end')
+            elif events.keysym == 'Tab':
+                return
 
         # Otherwise, don't let this key go to the screen
         return 'break'
 
+    def pushCurrentLocation(self):
+        textbox = self.getSelectedTextbox()
+        current = int(float(self.getCurrentRowIndex(textbox)))
+        if current >= textbox.TCL_BUFFER_SIZE:
+            current = 10
+        index = current + textbox.current_data_offset
+        # print "pushing:",index
+        self.locationStack.append(Location(index, textbox))
+
+    def popLastLocation(self):
+        if len(self.locationStack) == 0:
+            return
+        location = self.locationStack.pop()
+        index = location.index
+        textbox = location.textbox
+        # print "popping:",index
+        self.goto(index, textbox)
+
+    def goto(self, index, textbox):
+        # print "going to:",index
+        is_disassembly = textbox == self.disassembly_textbox
+        key = "exe" if is_disassembly else "data"
+        fraction = index / float(self.disassembly.length(key=key))
+        fraction -= .0001 # enough so that the text isn't cut off
+        textbox.changeView("moveto", fraction)
+        textbox.setCursor(str(index) + ".0")
+        tab_index = 0 if is_disassembly else 1
+        self.selectTab(tab_index)
+
+    def selectTab(self, index):
+        # TODO: make this less hacky if possible
+        tab = self.right_notebook.tabs()[index]
+        self.right_notebook.select(tab)
+
+    def getSelectedTextbox(self):
+        box = self.right_notebook.tabs().index(self.right_notebook.select())
+        # TODO: make this less hacky if possible
+        return self.disassembly_textbox if box == 0 else self.data_sections_textbox
 
     def functionDoubleClick(self, event):
         widget = event.widget
         selection = widget.curselection()
         name = widget.get(selection[0])
         index = self.disassembly.getLabelIndex(name, key="exe")
-        print "name: '%s'" % name
-        print "index:",index
-        fraction = index / float(self.disassembly.length(key="exe"))
-        print "fraction:",fraction
-        self.disassembly_textbox.changeView("moveto", fraction)
-
-
+        self.pushCurrentLocation()
+        self.goto(index, self.disassembly_textbox)
+        
     def stringDoubleClick(self, event):
         widget = event.widget
         selection = widget.curselection()
         name = widget.get(selection[0])
         index = self.disassembly.getLabelIndex(name, key="data")
-        print "name: '%s'" % name
-        print "index:",index
-
+        self.pushCurrentLocation()
+        self.goto(index, self.data_sections_textbox)
 
     def importFile(self):
         self.progress_bar.start()

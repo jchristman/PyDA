@@ -108,7 +108,9 @@ class ELF:
         for s in self.sections:
             section = None
             sCODE = self.binary[s.sh_offset : s.sh_offset + s.sh_size]
-            if s.sh_name_string in ELF.dont_disassemble:
+            if len(s.sh_name_string) == 0:
+                continue
+            elif s.sh_name_string in ELF.dont_disassemble:
                 section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
             else:
                 section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate

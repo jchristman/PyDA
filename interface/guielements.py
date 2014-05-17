@@ -177,6 +177,7 @@ class Notebook(nb):
     def __init__(self, parent, **kwargs):
         nb.__init__(self, parent, **kwargs)
         self.elements = {}
+        self.enable_traversal()
 
     def addElement(self, element, text):
         '''
@@ -375,6 +376,7 @@ class Textbox(Text):
         self.reset()
         self.data_model = data_model
         self.key = key
+        self.setCursor(START)
         # self.config(state=DISABLED)
 
     def reset(self):
@@ -418,16 +420,15 @@ class Textbox(Text):
         start_index = self.current_data_offset
         
         self.clear()
-        self.drawLines()
+        self.drawLines(start_index, end_index)
 
-    def drawLines(self):
-        for line in self.data_model.get(self.TCL_BUFFER_SIZE, key=self.key):
+    def drawLines(self, start_index, end_index):
+        for line in self.data_model.get(start_index, end_index, key=self.key):
             self.insertBottomLine(line)
 
     def redrawLine(self, index):
         self.delete(index, index + ' lineend')
         start = self.current_data_offset + int(index.split('.')[0]) - 1
-        print "current_data_offset",self.current_data_offset
         line = self.data_model.get(start, start+1, key=self.key).next().rstrip()
         self.context_manager.insert(index + ' lineend', line)
 
@@ -460,7 +461,7 @@ class Textbox(Text):
             self._deleteTopLine()
 
     def _deleteTopLine(self):
-        lines_to_delete = int(float(self.index('end')) - self.TCL_BUFFER_SIZE)
+        lines_to_delete = int(float(self.index('end')) - self.TCL_BUFFER_SIZE) - 2
         self.delete(START + ' linestart', START + ' linestart +%i line' % lines_to_delete)
 
     def datayscroll(self, *args):
@@ -510,6 +511,9 @@ class Textbox(Text):
         end = start + display_lines
         return str(start),str(end)
 
+    def setCursor(self, index):
+        self.mark_set("insert", index)
+
     def changeView(self, *args):
         line_height = (1.0 / self.data_model.length(key=self.key))
         display_height = self.cget('height')
@@ -520,6 +524,7 @@ class Textbox(Text):
             
             if self.current_data_offset < 0:
                 view_start = self.TCL_MOVETO_YVIEW - float(-self.current_data_offset)/self.TCL_BUFFER_SIZE
+                self.current_data_offset = 0 # TODO: analyze how well this one-line fix actually works
             elif self.current_data_offset + self.TCL_BUFFER_SIZE >= self.data_model.length(key=self.key):
                 view_start = self.TCL_MOVETO_YVIEW + float(self.current_data_offset + self.TCL_BUFFER_SIZE - self.data_model.length(key=self.key))/self.TCL_BUFFER_SIZE
             else:
@@ -571,3 +576,8 @@ class ContextMenu(Menu):
         self.context = None
         for label, callback in label_command_pairs:
             self.add_command(label=label, command=lambda: callback(self.context))
+
+class Location():
+    def __init__(self, index, textbox):
+        self.index = index
+        self.textbox = textbox
