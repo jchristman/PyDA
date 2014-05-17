@@ -53,13 +53,13 @@ class PyDAInterface(Frame):
         self.menu_bar.addMenu('File')
         self.menu_bar.addMenuItem('File', 'Import', self.importFile)
         self.menu_bar.addMenuSeparator('File')
-        self.menu_bar.addMenuItem('File', 'Exit', self.onExit)        
+        self.menu_bar.addMenuItem('File', 'Exit', self.onExit)
 
         # Set up the Tool Bar
         self.toolbar = ToolBar(self.app, 'top')
         self.toolbar.addButton('Import', self.importFile, 'left')
         self.toolbar.addButton('Share', self.share, 'right')
-        
+
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
         self.status_bar.addLabel('Status:', 'left')
@@ -67,12 +67,12 @@ class PyDAInterface(Frame):
         self.progress_bar = self.status_bar.addProgressBar('right', length=200, mode='indeterminate')
 
         # Set up the vertical paned window
-        self.tl_v_window = PanedWindow(self.app, 'top', borderwidth=1, 
+        self.tl_v_window = PanedWindow(self.app, 'top', borderwidth=1,
                 relief="sunken", sashwidth=4, orient="vertical")
 
         # Set up the horizontal paned window and add to the vertical window
         self.tl_h_window = self.tl_v_window.addElement(
-                PanedWindow(self.tl_v_window, borderwidth=1, 
+                PanedWindow(self.tl_v_window, borderwidth=1,
                     relief="sunken", sashwidth=4))
 
         # Set up the two notebooks
@@ -82,14 +82,14 @@ class PyDAInterface(Frame):
 
         # Set up the functions listbox
         self.functions_listbox = self.left_notebook.addListboxWithScrollbar(
-                'Functions', background='white', borderwidth=1, 
+                'Functions', background='white', borderwidth=1,
                 highlightthickness=1, relief='sunken')
 
         self.functions_listbox.bind('<Double-Button-1>', self.functionDoubleClick)
 
         # Set up the strings listbox
         self.strings_listbox = self.left_notebook.addListboxWithScrollbar(
-                'Strings', background='white', borderwidth=1, 
+                'Strings', background='white', borderwidth=1,
                 highlightthickness=1, relief='sunken')
 
         self.strings_listbox.bind('<Double-Button-1>', self.stringDoubleClick)
@@ -105,7 +105,7 @@ class PyDAInterface(Frame):
 
         # Set up the data section textbox
         # self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
-        #         'Data Sections', background="white", borderwidth=1, 
+        #         'Data Sections', background="white", borderwidth=1,
         #         highlightthickness=1, relief='sunken')
         self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
                 'Data Sections', tcl_buffer_size=self.TEXTBOX_BUFFER_SIZE,
@@ -120,10 +120,10 @@ class PyDAInterface(Frame):
         debug_frame_2 = debug_frame.addFrame('bottom', 'x', False, borderwidth=1)
         debug_frame_1 = debug_frame.addFrame('top', 'both', True, borderwidth=1)
         self.debug_textbox = debug_frame_1.addTextboxWithScrollbar(
-                background='white', borderwidth=1, highlightthickness=1, 
+                background='white', borderwidth=1, highlightthickness=1,
                 relief='sunken')
         self.debug_entry = debug_frame_2.addEntryWithLabel(
-                'Command:', 'bottom', 'x', True, background='white', 
+                'Command:', 'bottom', 'x', True, background='white',
                 borderwidth=1, highlightthickness=1, relief='sunken')
 
         self.debug_data_model = TextModel()
@@ -134,12 +134,12 @@ class PyDAInterface(Frame):
         chat_frame_2 = chat_frame.addFrame('bottom', 'x', False, borderwidth=1)
         chat_frame_1 = chat_frame.addFrame('top', 'both', True, borderwidth=1)
         self.chat_textbox = chat_frame_1.addTextboxWithScrollbar(
-                background='white', borderwidth=1, highlightthickness=1, 
+                background='white', borderwidth=1, highlightthickness=1,
                 relief='sunken')
         self.chat_entry = chat_frame_2.addEntryWithLabel(
-                'Send:', 'bottom', 'x', True, background='white', 
+                'Send:', 'bottom', 'x', True, background='white',
                 borderwidth=1, highlightthickness=1, relief='sunken')
-        
+
         self.chat_data_model = TextModel()
         self.chat_textbox.setDataModel(self.chat_data_model)
 
@@ -150,7 +150,7 @@ class PyDAInterface(Frame):
         self.data_comment_context_menu = ContextMenu([(';  Comment', self.dataComment)])
         self.disass_label_context_menu   = ContextMenu([('n  Rename Label', self.disassRenameLabel)])
         self.data_label_context_menu   = ContextMenu([('n  Rename Label', self.dataRenameLabel)])
-        
+
         # Force the mouse to always have focus
         self.tk_focusFollowsMouse()
 
@@ -162,10 +162,10 @@ class PyDAInterface(Frame):
         self.disassembly_textbox_context_manager = WidgetContextManager(
                 self.app, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
-                    (self.PYDA_SECTION, 'darkgreen', self.section_context_menu), 
+                    (self.PYDA_SECTION, 'darkgreen', self.section_context_menu),
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
-                    (self.PYDA_MNEMONIC, 'blue', None), 
-                    (self.PYDA_OP_STR, 'darkblue', None), 
+                    (self.PYDA_MNEMONIC, 'blue', None),
+                    (self.PYDA_OP_STR, 'darkblue', None),
                     (self.PYDA_COMMENT, 'darkgreen', self.disass_comment_context_menu),
                     (self.PYDA_LABEL, 'saddle brown', self.disass_label_context_menu),
                     (self.PYDA_BYTES, 'dark gray', None),
@@ -179,15 +179,15 @@ class PyDAInterface(Frame):
         data_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the data sections textbox
         self.data_textbox_context_manager = WidgetContextManager(
-                self.app, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP, 
+                self.app, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
-                    (self.PYDA_SECTION, 'darkgreen', None), 
-                    (self.PYDA_MNEMONIC, 'blue', None), 
-                    (self.PYDA_OP_STR, 'darkblue', None), 
+                    (self.PYDA_SECTION, 'darkgreen', None),
+                    (self.PYDA_MNEMONIC, 'blue', None),
+                    (self.PYDA_OP_STR, 'darkblue', None),
                     (self.PYDA_COMMENT, 'darkgreen', self.data_comment_context_menu),
-                    (self.PYDA_LABEL, 'saddle brown', self.data_label_context_menu), 
-                    (self.PYDA_BYTES, 'dark gray', None), 
-                    (self.PYDA_GENERIC, 'black', None), 
+                    (self.PYDA_LABEL, 'saddle brown', self.data_label_context_menu),
+                    (self.PYDA_BYTES, 'dark gray', None),
+                    (self.PYDA_GENERIC, 'black', None),
                     (self.PYDA_ENDL, 'black', self.data_comment_context_menu)])
 
         self.data_sections_textbox.context_manager = self.data_textbox_context_manager
@@ -224,7 +224,7 @@ class PyDAInterface(Frame):
 
     def destroy(self):
         self.app.shutdown()
-    
+
     def onExit(self):
         print 'Shutting down'
         self.app.shutdown()
@@ -370,7 +370,7 @@ class PyDAInterface(Frame):
             elif event.keysym == 'a':
                 textbox = event.widget
                 textbox.tag_add('sel', '1.0', 'end')
-            elif events.keysym == 'Tab':
+            elif event.keysym == 'Tab':
                 return
 
         # Otherwise, don't let this key go to the screen
@@ -422,7 +422,7 @@ class PyDAInterface(Frame):
         index = self.disassembly.getLabelIndex(name, key="exe")
         self.pushCurrentLocation()
         self.goto(index, self.disassembly_textbox)
-        
+
     def stringDoubleClick(self, event):
         widget = event.widget
         selection = widget.curselection()
@@ -456,7 +456,7 @@ class PyDAInterface(Frame):
         funcs = self.disassembly.getFuncs()
         for func in funcs:
             self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
-                    
+
     def populateStrings(self):
         strings = self.disassembly.getStrings()
         for string in strings:
@@ -473,7 +473,7 @@ class PyDAInterface(Frame):
 
             self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.disassembly, 'exe'))
             self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.disassembly, 'data', self.progress_bar))
-            
+
             self.debug('Done')
             self.status('Done')
             self.progress_bar.stop()
