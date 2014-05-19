@@ -1,7 +1,7 @@
 PyDA
 ====
 
-This program is currently in alpha and in heavy development mode (on our free time), so expect unstable behaviors as we develop. On that note, see below for a description of the project.
+This program is currently in alpha and in heavy development mode (on our free time), so expect unstable behaviors as we develop. We currently have a "stable" master (that is slightly useable) and all current work will be done on the "unstable" branch. If you want to checkout that branch, it will have more current developments included, but it might not work as well as we rework data structures, add new functionality, test new features, etc. On that nore, below is a description of the project.
 
 The Python DisAssembler is a disassembler built on the Capstone Engine that aims to provide an easy front end to disassembling many file formats and architectures. It is written in pure Python and has the Capstone Engine as its only non-native dependency.
 
