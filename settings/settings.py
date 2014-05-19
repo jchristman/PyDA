@@ -53,6 +53,10 @@ class SettingsManager(ConfigParser):
         self.add_section('disassembly')
         self.set('disassembly', 'num-opcode-bytes-shown', '5')
         self.set('disassembly', 'min-string-size', '5')
+        
+        self.add_section('save')
+        self.set('save', 'absolute', '0')
+        self.set('save', 'save-path', 'save')
 
         self.save()
                  

@@ -42,6 +42,7 @@ class PyDAInterface(Frame):
         self.TEXTBOX_MAX_LINES_JUMP = self.app.settings_manager.getint('gui', 'max-lines-jump')
         self.NUM_OPCODE_BYTES_SHOWN = self.app.settings_manager.getint('disassembly','num-opcode-bytes-shown')
         self.MIN_STRING_SIZE = self.app.settings_manager.getint('disassembly','min-string-size')
+        self.SAVE_PATH = self.app.save_manager.save_path
 
     def initUI(self):
         self.locationStack = list()
@@ -51,14 +52,18 @@ class PyDAInterface(Frame):
         # Set up the Menu Bar
         self.menu_bar = MenuBar(self.app)
         self.menu_bar.addMenu('File')
-        self.menu_bar.addMenuItem('File', 'Import', self.importFile)
+        self.menu_bar.addMenuItem('File', 'Disassemble File', self.onDisassembleFile)
+        self.menu_bar.addMenuItem('File', 'Load PyDA Save', self.onLoad)
+        self.menu_bar.addMenuItem('File', 'Save', self.onSave)
         self.menu_bar.addMenuSeparator('File')
         self.menu_bar.addMenuItem('File', 'Exit', self.onExit)
 
         # Set up the Tool Bar
         self.toolbar = ToolBar(self.app, 'top')
-        self.toolbar.addButton('Import', self.importFile, 'left')
-        self.toolbar.addButton('Share', self.share, 'right')
+        self.toolbar.addButton('Dis File', self.onDisassembleFile, 'left')
+        self.toolbar.addButton('Load', self.onLoad, 'left')
+        self.toolbar.addButton('Save', self.onSave, 'left')
+        self.toolbar.addButton('Share', self.onShare, 'right')
 
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
@@ -431,7 +436,10 @@ class PyDAInterface(Frame):
         self.pushCurrentLocation()
         self.goto(index, self.data_sections_textbox)
 
-    def importFile(self):
+    def onLoad(self):
+        dialog = tkFileDialog.
+
+    def onDisassembleFile(self):
         self.progress_bar.start()
         dialog = tkFileDialog.Open(self)
         file_name = dialog.show()
@@ -482,7 +490,7 @@ class PyDAInterface(Frame):
         stats = self.app.executor.getProfileStats()
         stats.sort_stats('cumulative').print_stats()
 
-    def share(self):
+    def onShare(self):
         self.server.start()
 
 if __name__ == '__main__':

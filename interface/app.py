@@ -48,13 +48,15 @@ class RootApplication(Tk):
     that executes a predetermined amount every so often. It allows the callback GUI effects
     to take place and keeps the GUI from blocking with a large number of operations.
     '''
-    def __init__(self, settings_manager, disassembler, executor, server):
+    def __init__(self, settings_manager, disassembler, executor, server, save_manager):
         Tk.__init__(self)
         Tk.CallWrapper = AppCallWrapper
         self.settings_manager = settings_manager
         self.disassembler = disassembler
         self.executor = executor
         self.server = server
+        self.save_manager = save_manager
+        
         self.queue_process_amount = settings_manager.getint('application', 'queue-process-amount')
         self.queue_process_delay = settings_manager.getint('application', 'queue-process-delay')
         self.queues = []
@@ -95,6 +97,13 @@ class RootApplication(Tk):
                     callback()
         
         self.after(self.queue_process_delay, self.pollCallbackQueue, queue)
+
+    def save(self, file_path):
+        save_data = (self.settings_manager, self.disassembler, self.executor, self.server)
+        self.save_manager.save(file_path, save_data)
+
+    def load(self, file_path):
+        self.settings_manager, self.disassembler, self.executor, self.server = self.save_manager.load(file_path)
 
     def destroy(self):
         self.shutdown()
