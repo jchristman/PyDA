@@ -14,5 +14,7 @@ The program is written in such a way as to require a minimal amount of dependenc
 Donations
 =========
 If you like this project and want to donate:
+
 BTC: 1CYP9apFMB2DgCbRxo1oAJNsbMwKbe6QyV
+
 DOGE: D8ra8gDYqK4Mx52Q5nw5GjA9nDRjNJpzee
