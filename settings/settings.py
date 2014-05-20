@@ -56,7 +56,7 @@ class SettingsManager(ConfigParser):
         
         self.add_section('save')
         self.set('save', 'absolute', '0')
-        self.set('save', 'save-path', 'save')
+        self.set('save', 'path', 'save' + os.path.sep + 'saves')
 
         self.save()
                  

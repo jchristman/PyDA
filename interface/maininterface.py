@@ -7,7 +7,7 @@ from disassembler.formats.helpers.models import TextModel
 from contextmanagers import WidgetContextManager
 from redirectors import StdoutRedirector
 from platform import system
-import sys
+import sys, os
 import tkFileDialog, tkMessageBox
 
 class PyDAInterface(Frame):
@@ -437,14 +437,27 @@ class PyDAInterface(Frame):
         self.goto(index, self.data_sections_textbox)
 
     def onLoad(self):
-        dialog = tkFileDialog.
+        print system()
+        file_types = [] if system() == "Darwin" else [('PyDA Saves', '*.pyda'), ('All Files', '*')]
+        dialog = tkFileDialog.Open(self, initialdir=self.SAVE_PATH, filetypes=file_types)
+        file_name = dialog.show()
+        if file_name:
+            print 'Loading %s' % file_name
+
+    def onSave(self):
+        dialog = tkFileDialog.SaveAs(self, initialdir=self.SAVE_PATH, initialfile='.pyda')
+        file_name = dialog.show()
+        if file_name:
+            print 'Saving as %s' % file_name
 
     def onDisassembleFile(self):
         self.progress_bar.start()
-        dialog = tkFileDialog.Open(self)
+        dialog = tkFileDialog.Open(self, initialdir=os.getcwd())
         file_name = dialog.show()
         if file_name:
             self.app.executor.submit(self.disassembleFile, file_name)
+        else:
+            self.progress_bar.stop()
 
     def disassembleFile(self, file_name):
         self.debug('Reading %s' % file_name)

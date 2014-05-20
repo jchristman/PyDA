@@ -12,13 +12,13 @@ from maininterface import PyDAInterface
 from Queue import Queue
 import sys
 
-def build_and_run(settings_manager, disassembler, executor, server):
+def build_and_run(settings_manager, disassembler, executor, server, save_manager):
     '''
     Arguments:
     disassembler - the PyDA disassembler class that contains methods for GUI operations
     server - the PyDA server that will be used for multiplayer work
     '''
-    root = RootApplication(settings_manager, disassembler, executor, server)
+    root = RootApplication(settings_manager, disassembler, executor, server, save_manager)
     print 'Building app'
     try:    app = PyDAInterface(root)
     except Exception as e:

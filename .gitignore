@@ -56,4 +56,5 @@ docs/_build/
 .DS_Store
 
 # PyDA Stuff
-.stats
+*.stats
+*.pyda

@@ -17,7 +17,7 @@ class PyDA:
         max_workers = settings_manager.getint('application', 'max-workers') # Get the max workers from settings manager
         profiler_on = settings_manager.getint('debugging', 'profiler-on') # Get whether there is a profiler
         absolute = settings_manager.getint('save', 'absolute') # Get whether it's an absolute path
-        save_path = settings_manager.getint('save', 'path') # Get whether it's an absolute path
+        save_path = settings_manager.get('save', 'path') # Get whether it's an absolute path
         if not absolute:
             save_path = PROJECT_PATH + os.path.sep + save_path
 
