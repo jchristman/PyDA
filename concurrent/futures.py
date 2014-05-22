@@ -1,11 +1,10 @@
 from threading import Thread, Condition
 from multiprocessing import Process, Pipe
-import cPickle
-import pickle
-from cStringIO import StringIO
 from Queue import Queue
 from cProfile import Profile
 from pstats import Stats
+from cStringIO import StringIO
+import pickle, cPickle
 
 ### These next lines are used to enable ccPickle to effectively cPickle objects
 ### for interprocess communication
@@ -31,18 +30,6 @@ def _uncPickle_method(func_name, obj, cls):
 import copy_reg
 import types
 copy_reg.pickle(types.MethodType, _cPickle_method, _uncPickle_method)
-
-def _do_work(child, fn, args, kwargs):
-    string_io = StringIO() # This is a fast, file like object in RAM we can dump to with cPickle
-    print 'Starting the function'
-    data = fn(*args, **kwargs)
-    print 'Pickling the object'
-    cPickle.dump(data, string_io)
-    print 'Sending data to parent'
-    child.send(string_io.getvalue())
-    print 'Done!'
-    child.close()
-    return
 
 class ThreadPoolExecutor:
     '''
@@ -79,41 +66,17 @@ class ThreadPoolExecutor:
         self.activate_worker.release()
 
     def do_work(self, args, profile):
-        fn, args, kwargs, in_process, callback = args
+        fn, args, kwargs = args
         if profile: profile.enable()
-        if in_process:
-            parent, child = Pipe()
-            p = Process(target=_do_work, args=(child, fn, args, kwargs))
-            print 'Starting process'
-            p.start()
-            print 'Receiving data'
-            data = parent.recv()
-            print 'Waiting on end of process'
-            p.join()
-            parent.close()
-            data = cPickle.loads(data) # It's slower but it doesn't lock the GIL....
-            print 'Finished and got', data
-            if profile:
-                profile.disable()
-                if self.stats == None: self.stats = Stats(profile)
-                else: self.stats.add(profile)
-            callback(data)
-        else:
-            fn(*args, **kwargs)
-            if profile:
-                profile.disable()
-                if self.stats == None: self.stats = Stats(profile)
-                else: self.stats.add(profile)
+        fn(*args, **kwargs)
+        if profile:
+            profile.disable()
+            if self.stats == None: self.stats = Stats(profile)
+            else: self.stats.add(profile)
 
     def submit(self, fn, *args, **kwargs):
         self.activate_worker.acquire()
-        self.function_queue.put((fn, args, kwargs, False, None))
-        self.activate_worker.notify()
-        self.activate_worker.release()
-
-    def submitProcess(self, fn, callback, *args, **kwargs):
-        self.activate_worker.acquire()
-        self.function_queue.put((fn, args, kwargs,  True, callback))
+        self.function_queue.put((fn, args, kwargs))
         self.activate_worker.notify()
         self.activate_worker.release()
 
@@ -136,5 +99,80 @@ class ThreadPoolExecutor:
     def getProfileStats(self):
         return self.stats
 
+def _process(cmd_pipe, data_pipe, process_object):
+    cmd, args = cPickle.loads(cmd_pipe.recv())
+    while not 'halt' in cmd:
+        string_io = StringIO()
+        result = process_object.execute(cmd, args)
+        cPickle.dump(result, string_io)
+        data_pipe.send(string_io.getvalue())
+        string_io.close()
+        cmd, args = cPickle.loads(cmd_pipe.recv())
+    return
+
+class ProcessProxy:
+    def __init__(self, process_object):
+        if not isinstance(process_object, AbstractProcessObject):
+            raise NotAbstractProcessObjectException
+        self.parent_cmd_pipe, self.child_cmd_pipe = Pipe()
+        self.parent_data_pipe, self.child_data_pipe = Pipe()
+        self.process = Process(target=_process, args=(self.child_cmd_pipe, self.child_data_pipe, process_object))
+        self.process.start()
+
+    def submit(self, cmd_str, args_tuple, callback=None):
+        string_io = StringIO()
+        pickle.dump((cmd_str, args_tuple), string_io)
+        self.parent_cmd_pipe.send(string_io.getvalue())
+        string_io.close()
+        result = pickle.loads(self.parent_data_pipe.recv())
+        if callback:
+            callback(result)
+        return result
+
+    def shutdown(self, hard=False):
+        if hard:    self.process.terminate()
+        else:       self.parent_cmd_pipe.send('halt')
+        self.process.join()
+
+class AbstractProcessObject:
+    def execute(self, cmd_str):
+        raise NotImplementedError
+
+class DisassemblerInterface:
+    def __init__(self, process_object):
+        self.process_proxy = ProcessProxy(process_object)
+
+    def disassemble(self, file_name, callback=None):
+        self.process_proxy.submit('DISASSEMBLE', file_name)
+        if callback:
+            callback()
+
+    def get(self, arg1, arg2, arg3, key):
+        return self.process_proxy.submit('GET', (arg1, arg2, arg3, key))
+
+    def getitem(self, index, key=None):
+        return self.process_proxy.submit('GETITEM', (index, key))
+
+    def set(self, index, item, key=None):
+        return self.process_proxy.submit('SET', (index, item, key))
+
+    def append(self, item, key=None):
+        return self.process_proxy.submit('APPEND', (item, key))
+
+    def search(self, string, key=None):
+        return self.process_proxy.submit('SEARCH', (string, key))
+
+    def length(self, key=None):
+        return self.process_proxy.submit('LENGTH', key)
+
+    def shutdown(self, hard=False):
+        self.process_proxy.shutdown()
+
 class ShutdownException(Exception):
+    pass
+
+class NotAbstractProcessObjectException(Exception):
+    pass
+
+class UnknownProcessCommandException(Exception):
     pass

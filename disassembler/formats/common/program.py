@@ -74,25 +74,29 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         if arg2 is None:
             arg2 = arg1
             arg1 = 0
-        text_range = xrange(arg1, arg2, arg3)
-        for i in text_range:
-            if key == 'exe':
-                yield self._get(i, self.executable_sections)
-            elif key == 'data':
-                yield self._get(i, self.data_sections)
+        data_range = xrange(arg1, arg2)
+        if key == 'exe':
+            data = self._get(data_range, self.executable_sections)
+        elif key == 'data':
+            data = self._get(data_range, self.data_sections)
+        else:
+            data = ''
+        return data if arg3 == 1 else reversed(data)
 
-    def _get(self, index, section_array):
-        offset = 0
+    def _get(self, data_range, section_array):
+        data = []
+        index = 0
+        started = False
         for line in self.program_info:
-            if index == offset:
-                return line
-            offset += 1
+            if index in data_range:
+                data.append(data)
+            index += 1
         for section in section_array:
-            length = len(section.string_rep)
-            if index < offset + length: # Then the item is inside this section
-                return section.string_rep[index - offset]
-            offset += length
-        return None
+            for line in section.string_rep:
+                if index in data_range:
+                    data.append(section.string_rep[index])
+                index += 1
+        return data
 
     def getitem(self, index, key=None):
         if index < len(self.text):

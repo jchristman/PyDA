@@ -20,14 +20,15 @@ def build_and_run(settings_manager, disassembler, executor, server, save_manager
     '''
     root = RootApplication(settings_manager, disassembler, executor, server, save_manager)
     print 'Building app'
-    try:    app = PyDAInterface(root)
-    except Exception as e:
-        print 'Exception in building interface!\n',e.message
-        root.shutdown()
-        sys.exit()
-    except:
-        root.shutdown()
-        sys.exit()
+    app = PyDAInterface(root)
+    #try:    app = PyDAInterface(root)
+    #except Exception as e:
+    #    print 'Exception in building interface!\n',e.message
+    #    root.shutdown()
+    #    sys.exit()
+    #except:
+    #    root.shutdown()
+    #    sys.exit()
     print 'Running mainloop'
     try:    root.mainloop()
     except Exception as e:
@@ -99,14 +100,14 @@ class RootApplication(Tk):
         self.after(self.queue_process_delay, self.pollCallbackQueue, queue)
 
     def save(self, file_path, disassembly_object):
-        save_data = (self.settings_manager, self.disassembler, disassembly_object) # We are just saving a tuple of objects right now...
+        save_data = (self.settings_manager, disassembly_object)
         self.save_manager.save(file_path, save_data)
 
     def load(self, file_path):
         object_tuple = self.save_manager.load(file_path)
         if object_tuple is None:
             return None
-        self.settings_manager, self.disassembler, disassembly_object = object_tuple # Unpack the objects
+        self.settings_manager, disassembly_object = object_tuple # Unpack the objects
         return disassembly_object
 
     def destroy(self):

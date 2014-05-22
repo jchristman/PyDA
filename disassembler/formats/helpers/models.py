@@ -54,11 +54,12 @@ class TextModel(AbstractDataModel):
         if arg2 is None:
             arg2 = arg1
             arg1 = 0
-        text_range = xrange(arg1, arg2, arg3)
-        for i in text_range:
-            if i >= len(self.text):
-                break
-            yield self.text[i]
+        data = []
+        data_range = xrange(arg1, arg2, arg3)
+        for i,line in enumerate(self.text):
+            if i in data_range:
+                data.append(line)
+        return data if arg3 == 1 else reversed(data)
 
     def getitem(self, index, key=None):
         if index < len(self.text):

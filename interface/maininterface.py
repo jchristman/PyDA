@@ -265,7 +265,7 @@ class PyDAInterface(Frame):
         file_name = dialog.show()
         if file_name:
             self.clearWindows()
-            self.app.executor.submitProcess(self.app.disassembler.disassembleFile, self._processDisassembly, (file_name,))
+            self.app.executor.submit(self.app.disassembler.disassemble, (file_name,), self.processDisassembly) # Start a new thread that will interact with the other process
         else:
             self.progress_bar.stop()
 
@@ -504,6 +504,7 @@ class PyDAInterface(Frame):
 ##        self.status('Finished disassembling')
 ##        self.app.addCallback(self.processDisassembly)
 
+    '''
     def populateFunctions(self):
         funcs = self.disassembly.getFuncs()
         for func in funcs:
@@ -513,26 +514,22 @@ class PyDAInterface(Frame):
         strings = self.disassembly.getStrings()
         for string in strings:
             self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.name))
-
-    def _processDisassembly(self, disassembly):
-        self.disassembly = disassembly
-        self.processDisassembly()
+    '''
 
     def processDisassembly(self):
-        if isinstance(self.disassembly, CommonProgramDisassemblyFormat):
-            self.status('Processing Data')
+        self.status('Processing Data')
 
-            self.debug('Processing Functions')
-            self.populateFunctions()
-            self.debug('Processing Strings')
-            self.populateStrings()
+        #self.debug('Processing Functions')
+        #self.populateFunctions()
+        #self.debug('Processing Strings')
+        #self.populateStrings()
 
-            self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.disassembly, 'exe'))
-            self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.disassembly, 'data', self.progress_bar))
+        self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.app.disassembler, 'exe'))
+        self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.app.disassembler, 'data', self.progress_bar))
 
-            self.debug('Done')
-            self.status('Done')
-            self.progress_bar.stop()
+        self.debug('Done')
+        self.status('Done')
+        self.progress_bar.stop()
 
     def printStats(self):
         stats = self.app.executor.getProfileStats()
