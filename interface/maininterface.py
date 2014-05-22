@@ -265,7 +265,7 @@ class PyDAInterface(Frame):
         file_name = dialog.show()
         if file_name:
             self.clearWindows()
-            self.app.executor.submit(self.disassembleFile, file_name)
+            self.app.executor.submitProcess(self.app.disassembler.disassembleFile, self._processDisassembly, (file_name,))
         else:
             self.progress_bar.stop()
 
@@ -307,7 +307,7 @@ class PyDAInterface(Frame):
 
     def debug(self, message):
         if self.DEBUG:
-            print message + '\n',
+            print str(message) + '\n',
 
     def getCurrentRowIndex(self, textbox):
         line, _ = textbox.index('insert').split('.')
@@ -490,19 +490,19 @@ class PyDAInterface(Frame):
         # TODO: make this less hacky if possible
         return self.disassembly_textbox if box == 0 else self.data_sections_textbox
 
-    def disassembleFile(self, file_name):
-        self.debug('Reading %s' % file_name)
-        self.status('Reading %s' % file_name)
-        binary = open(file_name, 'rb').read()
-        self.debug('Loading binary')
-        self.status('Loading binary')
-        self.app.disassembler.load(binary, filename=file_name)
-        self.debug('Disassembling as %s' % self.app.disassembler.getFileType())
-        self.status('Disassembling as %s' % self.app.disassembler.getFileType())
-        self.disassembly = self.app.disassembler.disassemble()
-        self.debug('Finished disassembling')
-        self.status('Finished disassembling')
-        self.processDisassembly()
+##    def disassembleFile(self, file_name):
+##        self.debug('Reading %s' % file_name)
+##        self.status('Reading %s' % file_name)
+##        binary = open(file_name, 'rb').read()
+##        self.debug('Loading binary')
+##        self.status('Loading binary')
+##        self.app.disassembler.load(binary, filename=file_name)
+##        self.debug('Disassembling as %s' % self.app.disassembler.getFileType())
+##        self.status('Disassembling as %s' % self.app.disassembler.getFileType())
+##        self.disassembly = self.app.disassembler.disassemble()
+##        self.debug('Finished disassembling')
+##        self.status('Finished disassembling')
+##        self.app.addCallback(self.processDisassembly)
 
     def populateFunctions(self):
         funcs = self.disassembly.getFuncs()
@@ -513,6 +513,10 @@ class PyDAInterface(Frame):
         strings = self.disassembly.getStrings()
         for string in strings:
             self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.name))
+
+    def _processDisassembly(self, disassembly):
+        self.disassembly = disassembly
+        self.processDisassembly()
 
     def processDisassembly(self):
         if isinstance(self.disassembly, CommonProgramDisassemblyFormat):

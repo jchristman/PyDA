@@ -1,7 +1,40 @@
 from threading import Thread, Condition
+from multiprocessing import Process, Queue as mQueue
 from Queue import Queue
 from cProfile import Profile
 from pstats import Stats
+
+### These next lines are used to enable cPickle to effectively pickle objects
+### for interprocess communication
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    try:
+        for cls in cls.mro():
+            try:
+                func = cls.__dict__[func_name]
+            except KeyError:
+                pass
+            else:
+                break
+    except AttributeError:
+        func = cls.__dict__[func_name]
+    return func.__get__(obj, cls)
+
+import copy_reg
+import types
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+
+def _do_work(m_queue, fn, args, kwargs):
+    with open(r'C:\tmp\tmp2.txt', 'w') as f:
+        f.write('About to enter function\n')
+        m_queue.put(fn(*args, **kwargs))
+        f.write('About to leave function\n')
+    return
 
 class ThreadPoolExecutor:
     '''
@@ -38,17 +71,39 @@ class ThreadPoolExecutor:
         self.activate_worker.release()
 
     def do_work(self, args, profile):
-        fn, args, kwargs = args
+        fn, args, kwargs, in_process, callback = args
         if profile: profile.enable()
-        fn(*args, **kwargs)
-        if profile:
-            profile.disable()
-            if self.stats == None: self.stats = Stats(profile)
-            else: self.stats.add(profile)
+        if in_process:
+            m_queue = mQueue()
+            p = Process(target=_do_work, args=(m_queue, fn, args, kwargs))
+            print 'Starting process'
+            p.start()
+            print 'Waiting on process end'
+            p.join()
+            print 'Getting data from the queue'
+            data = m_queue.get()
+            print 'Finished and got', data
+            if profile:
+                profile.disable()
+                if self.stats == None: self.stats = Stats(profile)
+                else: self.stats.add(profile)
+            callback(data)
+        else:
+            fn(*args, **kwargs)
+            if profile:
+                profile.disable()
+                if self.stats == None: self.stats = Stats(profile)
+                else: self.stats.add(profile)
 
     def submit(self, fn, *args, **kwargs):
         self.activate_worker.acquire()
-        self.function_queue.put((fn, args, kwargs))
+        self.function_queue.put((fn, args, kwargs, False, None))
+        self.activate_worker.notify()
+        self.activate_worker.release()
+
+    def submitProcess(self, fn, callback, *args, **kwargs):
+        self.activate_worker.acquire()
+        self.function_queue.put((fn, args, kwargs,  True, callback))
         self.activate_worker.notify()
         self.activate_worker.release()
 
