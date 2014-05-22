@@ -15,7 +15,6 @@ class Disassembler:
             except:
                 print 'File header did not match %s' % format.FILETYPE_NAME
                 # traceback.print_exc()
-
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 
@@ -25,18 +24,14 @@ class Disassembler:
     def disassembleFile(self, file_name):
         if type(file_name) is tuple:
             file_name = file_name[0]
-        with open(r'C:\tmp\tmp.txt','w') as f:
-            try:
-                f.write('reading file: %s\n' % file_name)
-                binary = open(file_name, 'rb').read()
-                f.write('loading binary\n')
-                self.load(binary, filename=file_name)
-                f.write('disassembling\n')                
-                disassembly = self.disassemble()
-                return disassembly
-            except Exception as e:
-                f.write(e.message)
-        return None
+        print 'Reading file'
+        binary = open(file_name, 'rb').read()
+        print 'Loading binary'
+        self.load(binary, filename=file_name)
+        print 'Disassembling'
+        disassembly = self.disassemble()
+        print 'Finished disassembling'
+        return disassembly
 
     def disassemble(self):
         return self.dis.disassemble(self.settings_manager)

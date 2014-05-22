@@ -1,18 +1,21 @@
 from threading import Thread, Condition
-from multiprocessing import Process, Queue as mQueue
+from multiprocessing import Process, Pipe
+import cPickle
+import pickle
+from cStringIO import StringIO
 from Queue import Queue
 from cProfile import Profile
 from pstats import Stats
 
-### These next lines are used to enable cPickle to effectively pickle objects
+### These next lines are used to enable ccPickle to effectively cPickle objects
 ### for interprocess communication
-def _pickle_method(method):
+def _cPickle_method(method):
     func_name = method.im_func.__name__
     obj = method.im_self
     cls = method.im_class
-    return _unpickle_method, (func_name, obj, cls)
+    return _uncPickle_method, (func_name, obj, cls)
 
-def _unpickle_method(func_name, obj, cls):
+def _uncPickle_method(func_name, obj, cls):
     try:
         for cls in cls.mro():
             try:
@@ -27,13 +30,18 @@ def _unpickle_method(func_name, obj, cls):
 
 import copy_reg
 import types
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+copy_reg.pickle(types.MethodType, _cPickle_method, _uncPickle_method)
 
-def _do_work(m_queue, fn, args, kwargs):
-    with open(r'C:\tmp\tmp2.txt', 'w') as f:
-        f.write('About to enter function\n')
-        m_queue.put(fn(*args, **kwargs))
-        f.write('About to leave function\n')
+def _do_work(child, fn, args, kwargs):
+    string_io = StringIO() # This is a fast, file like object in RAM we can dump to with cPickle
+    print 'Starting the function'
+    data = fn(*args, **kwargs)
+    print 'Pickling the object'
+    cPickle.dump(data, string_io)
+    print 'Sending data to parent'
+    child.send(string_io.getvalue())
+    print 'Done!'
+    child.close()
     return
 
 class ThreadPoolExecutor:
@@ -74,14 +82,16 @@ class ThreadPoolExecutor:
         fn, args, kwargs, in_process, callback = args
         if profile: profile.enable()
         if in_process:
-            m_queue = mQueue()
-            p = Process(target=_do_work, args=(m_queue, fn, args, kwargs))
+            parent, child = Pipe()
+            p = Process(target=_do_work, args=(child, fn, args, kwargs))
             print 'Starting process'
             p.start()
-            print 'Waiting on process end'
+            print 'Receiving data'
+            data = parent.recv()
+            print 'Waiting on end of process'
             p.join()
-            print 'Getting data from the queue'
-            data = m_queue.get()
+            parent.close()
+            data = cPickle.loads(data) # It's slower but it doesn't lock the GIL....
             print 'Finished and got', data
             if profile:
                 profile.disable()
