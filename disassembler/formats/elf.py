@@ -1,157 +1,442 @@
-import capstone
+from capstone import *
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.helpers.exceptions import BadMagicHeaderException
 from disassembler.formats.helpers.flags import Flags
+from ctypes import *
 from struct import unpack
-
-BYTE = 1    # 8 bits
-HWORD = 2   # 16 bits
-WORD = 4    # 32 bits
-DWORD = 8   # 64 bits
+import sys
 
 def disassemble(binary, filename=None):
     return ELF(binary, filename=filename)
-#except: return False
 
 FILETYPE_NAME = 'ELF'
 
+# The parsing logic below is blatantly ripped off of ROPGadget v5.0:
+# PE class =========================================================================================
+
+class ELFFlags:
+    ELFCLASS32  = 0x01
+    ELFCLASS64  = 0x02
+    EI_CLASS    = 0x04
+    EI_DATA     = 0x05
+    ELFDATA2LSB = 0x01
+    ELFDATA2MSB = 0x02
+    EM_386      = 0x03
+    EM_X86_64   = 0x3e
+    EM_ARM      = 0x28
+    EM_MIPS     = 0x08
+    EM_SPARCv8p = 0x12
+    EM_PowerPC  = 0x14
+    EM_ARM64    = 0xb7
+
+class Elf32_Ehdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("e_ident",         c_ubyte * 16),
+                    ("e_type",          c_ushort),
+                    ("e_machine",       c_ushort),
+                    ("e_version",       c_uint),
+                    ("e_entry",         c_uint),
+                    ("e_phoff",         c_uint),
+                    ("e_shoff",         c_uint),
+                    ("e_flags",         c_uint),
+                    ("e_ehsize",        c_ushort),
+                    ("e_phentsize",     c_ushort),
+                    ("e_phnum",         c_ushort),
+                    ("e_shentsize",     c_ushort),
+                    ("e_shnum",         c_ushort),
+                    ("e_shstrndx",      c_ushort)
+                ]
+ 
+class Elf64_Ehdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("e_ident",         c_ubyte * 16),
+                    ("e_type",          c_ushort),
+                    ("e_machine",       c_ushort),
+                    ("e_version",       c_uint),
+                    ("e_entry",         c_ulonglong),
+                    ("e_phoff",         c_ulonglong),
+                    ("e_shoff",         c_ulonglong),
+                    ("e_flags",         c_uint),
+                    ("e_ehsize",        c_ushort),
+                    ("e_phentsize",     c_ushort),
+                    ("e_phnum",         c_ushort),
+                    ("e_shentsize",     c_ushort),
+                    ("e_shnum",         c_ushort),
+                    ("e_shstrndx",      c_ushort)
+                ]
+
+class Elf32_Phdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("p_type",          c_uint),
+                    ("p_offset",        c_uint),
+                    ("p_vaddr",         c_uint),
+                    ("p_paddr",         c_uint),
+                    ("p_filesz",        c_uint),
+                    ("p_memsz",         c_uint),
+                    ("p_flags",         c_uint),
+                    ("p_align",         c_uint)
+                ]
+
+class Elf64_Phdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("p_type",          c_uint),
+                    ("p_flags",         c_uint),
+                    ("p_offset",        c_ulonglong),
+                    ("p_vaddr",         c_ulonglong),
+                    ("p_paddr",         c_ulonglong),
+                    ("p_filesz",        c_ulonglong),
+                    ("p_memsz",         c_ulonglong),
+                    ("p_align",         c_ulonglong)
+                ]
+
+class Elf32_Shdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("sh_name",         c_uint),
+                    ("sh_type",         c_uint),
+                    ("sh_flags",        c_uint),
+                    ("sh_addr",         c_uint),
+                    ("sh_offset",       c_uint),
+                    ("sh_size",         c_uint),
+                    ("sh_link",         c_uint),
+                    ("sh_info",         c_uint),
+                    ("sh_addralign",    c_uint),
+                    ("sh_entsize",      c_uint)
+                ]
+
+class Elf64_Shdr_LSB(LittleEndianStructure):
+    _fields_ =  [
+                    ("sh_name",         c_uint),
+                    ("sh_type",         c_uint),
+                    ("sh_flags",        c_ulonglong),
+                    ("sh_addr",         c_ulonglong),
+                    ("sh_offset",       c_ulonglong),
+                    ("sh_size",         c_ulonglong),
+                    ("sh_link",         c_uint),
+                    ("sh_info",         c_uint),
+                    ("sh_addralign",    c_ulonglong),
+                    ("sh_entsize",      c_ulonglong)
+                ]
+
+class Elf32_Ehdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("e_ident",         c_ubyte * 16),
+                    ("e_type",          c_ushort),
+                    ("e_machine",       c_ushort),
+                    ("e_version",       c_uint),
+                    ("e_entry",         c_uint),
+                    ("e_phoff",         c_uint),
+                    ("e_shoff",         c_uint),
+                    ("e_flags",         c_uint),
+                    ("e_ehsize",        c_ushort),
+                    ("e_phentsize",     c_ushort),
+                    ("e_phnum",         c_ushort),
+                    ("e_shentsize",     c_ushort),
+                    ("e_shnum",         c_ushort),
+                    ("e_shstrndx",      c_ushort)
+                ]
+ 
+class Elf64_Ehdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("e_ident",         c_ubyte * 16),
+                    ("e_type",          c_ushort),
+                    ("e_machine",       c_ushort),
+                    ("e_version",       c_uint),
+                    ("e_entry",         c_ulonglong),
+                    ("e_phoff",         c_ulonglong),
+                    ("e_shoff",         c_ulonglong),
+                    ("e_flags",         c_uint),
+                    ("e_ehsize",        c_ushort),
+                    ("e_phentsize",     c_ushort),
+                    ("e_phnum",         c_ushort),
+                    ("e_shentsize",     c_ushort),
+                    ("e_shnum",         c_ushort),
+                    ("e_shstrndx",      c_ushort)
+                ]
+
+class Elf32_Phdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("p_type",          c_uint),
+                    ("p_offset",        c_uint),
+                    ("p_vaddr",         c_uint),
+                    ("p_paddr",         c_uint),
+                    ("p_filesz",        c_uint),
+                    ("p_memsz",         c_uint),
+                    ("p_flags",         c_uint),
+                    ("p_align",         c_uint)
+                ]
+
+class Elf64_Phdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("p_type",          c_uint),
+                    ("p_flags",         c_uint),
+                    ("p_offset",        c_ulonglong),
+                    ("p_vaddr",         c_ulonglong),
+                    ("p_paddr",         c_ulonglong),
+                    ("p_filesz",        c_ulonglong),
+                    ("p_memsz",         c_ulonglong),
+                    ("p_align",         c_ulonglong)
+                ]
+
+class Elf32_Shdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("sh_name",         c_uint),
+                    ("sh_type",         c_uint),
+                    ("sh_flags",        c_uint),
+                    ("sh_addr",         c_uint),
+                    ("sh_offset",       c_uint),
+                    ("sh_size",         c_uint),
+                    ("sh_link",         c_uint),
+                    ("sh_info",         c_uint),
+                    ("sh_addralign",    c_uint),
+                    ("sh_entsize",      c_uint)
+                ]
+
+class Elf64_Shdr_MSB(BigEndianStructure):
+    _fields_ =  [
+                    ("sh_name",         c_uint),
+                    ("sh_type",         c_uint),
+                    ("sh_flags",        c_ulonglong),
+                    ("sh_addr",         c_ulonglong),
+                    ("sh_offset",       c_ulonglong),
+                    ("sh_size",         c_ulonglong),
+                    ("sh_link",         c_uint),
+                    ("sh_info",         c_uint),
+                    ("sh_addralign",    c_ulonglong),
+                    ("sh_entsize",      c_ulonglong)
+                ]
+
+""" This class parses the ELF """
 class ELF:
     FILETYPE_NAME = 'ELF'
     def __init__(self, binary, filename=None):
-        magic_offset = 0
-        if not binary[magic_offset : magic_offset + WORD] == '\x7FELF':
-            raise BadMagicHeaderException()
-        
-        self.binary = binary
-        self.filename = filename
+        self.__binary    = bytearray(binary)
+        self.__filename = filename
 
-        offset = 4
-        self.bin_class = capstone.CS_MODE_32 if unpack('B', self.binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_64
-        self.word = ('Q' if self.bin_class == capstone.CS_MODE_64 else 'I', DWORD if self.bin_class == capstone.CS_MODE_64 else WORD)
-        offset = 5
-        self.endian = capstone.CS_MODE_LITTLE_ENDIAN if unpack('B', self.binary[offset : offset + BYTE])[0] == 1 else capstone.CS_MODE_BIG_ENDIAN
-        self.end = '<' if self.endian == capstone.CS_MODE_LITTLE_ENDIAN else '>'
-        offset = 7
-        os_values = {
-                0x00 : 'System V',
-                0x01 : 'HP-UX',
-                0x02 : 'NetBSD',
-                0x03 : 'Linux',
-                0x06 : 'Solaris',
-                0x07 : 'AIX',
-                0x08 : 'IRIX',
-                0x09 : 'FreeBSD',
-                0x0C : 'OpenBSD'
-                }
-        self.os = os_values[unpack('B', self.binary[offset : offset + BYTE])[0]]
-        offset = 0x10
-        type_values     =   {
-                1 : 'relocatable',
-                2 : 'executable',
-                3 : 'shared',
-                4 : 'core'
-                }
-        self.type = type_values[unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]]
-        offset = 0x12
-        arch_values     =   {
-                #                0x02 : capstone.CS_ARCH_SPARC, Next version will have sparc
-                0x03 : capstone.CS_ARCH_X86,
-                0x08 : capstone.CS_ARCH_MIPS,
-                0x14 : capstone.CS_ARCH_PPC,
-                0x28 : capstone.CS_ARCH_ARM,
-                0x32 : False, # IA_64 not yet supported in capstone
-                0x3E : capstone.CS_ARCH_X86, # This is actually x86_64 which I think is taken care of by the CS_MODE_64
-                0xB7 : capstone.CS_ARCH_ARM64
-                }
-        self.arch = arch_values[unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]]
-        offset = 0x18
-        self.entry_point = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
-        offset += self.word[1]
-        self.program_header_offset = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
-        offset += self.word[1]
-        self.section_header_offset = unpack(self.end + self.word[0], self.binary[offset : offset + self.word[1]])[0]
-        offset += self.word[1]
-        self.flags = unpack(self.end + 'I', self.binary[offset : offset + WORD])[0]
-        offset += WORD
-        self.header_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
-        offset += HWORD
-        self.program_header_entry_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
-        offset += HWORD
-        self.program_header_entry_num = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
-        offset += HWORD
-        self.section_header_entry_size = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
-        offset += HWORD
-        self.section_header_entry_num = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
-        offset += HWORD
-        self.section_header_str_index = unpack(self.end + 'H', self.binary[offset : offset + HWORD])[0]
+        self.__ElfHeader = None
+        self.__shdr_l    = []
+        self.__phdr_l    = []
 
-        self.parseSections()
-
-    def parseSections(self):
-        self.sections = []
-        section_names = Section(self, self.section_header_str_index, self.section_header_entry_size, self.word)
-        section_names_strings = self.binary[section_names.sh_offset : section_names.sh_offset + section_names.sh_size]
-        
-        for i in xrange(self.section_header_entry_num):
-            section = Section(self, i, self.section_header_entry_size, self.word)
-            section.sh_name_string = section_names_strings[section.sh_name:].split('\x00')[0]
-            self.sections.append(section)
-
-        self.sections.sort(key=lambda i: i.sh_offset)
-
+        self.__setHeaderElf()
+        self.__setShdr()
+        self.__setPhdr()
+    
     def disassemble(self, settings_manager):
-        md = capstone.Cs(self.arch, self.bin_class)
-            
+        md = capstone.Cs(self.getArch(), self.getArchMode())
         disassembly = CommonProgramDisassemblyFormat(self.getProgramInfo(), settings_manager)
-        for s in self.sections:
-            section = None
-            sCODE = self.binary[s.sh_offset : s.sh_offset + s.sh_size]
-            if len(s.sh_name_string) == 0:
-                continue
-            elif s.sh_name_string in ELF.dont_disassemble:
-                section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("r--"), bytes=sCODE) #TODO: make flags more accurate
-            else:
-                section = CommonSectionFormat(disassembly, s.sh_name_string, self.arch, self.bin_class, s.sh_addr, Flags("rwx")) #TODO: make flags more accurate
-                
-                # linear sweep (for now)
-                for inst in md.disasm(sCODE, s.sh_addr):
-                    section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
 
+        for s in self.getExecSections():
+            #s["name"] = s["name"].replace('\x00','')
+            section = CommonSectionFormat(disassembly, s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("rwx")) #TODO: make flags more accurate
+
+            # linear sweep (for now)
+            for inst in md.disasm(s["opcodes"], s["vaddr"]):
+                section.addInst(CommonInstFormat(inst.address, inst.mnemonic, inst.op_str, inst.bytes))
+            
             section.searchForStrings()
             section.searchForFunctions()
             section.addStringLabels()
             section.addFunctionLabels()
-
             disassembly.addSection(section.sort())
+
+        for s in self.getDataSections():
+            s["name"] = s["name"].replace('\x00','')
+            section = CommonSectionFormat(disassembly, s["name"], self.getArch(), self.getArchMode(), s["vaddr"], Flags("r--"), bytes=s["opcodes"]) #TODO: make flags more accurate
+            section.searchForStrings()
+            # section.searchForFunctions()
+            section.addStringLabels()
+            # section.addFunctionLabels()
+            disassembly.addSection(section.sort())
+
         return disassembly
 
-    def getArchName(self):
-        arc = None
-        if self.arch == capstone.CS_ARCH_X86:
-            arc = "x86"
-        elif self.arch == capstone.CS_ARCH_PPC:
-            arc = "PPC"
-        elif self.arch == capstone.CS_ARCH_ARM:
-            arc = "ARM"
-        elif self.arch == capstone.CS_ARCH_ARM64:
-            arc = "ARM64"
 
-        return arc
+    """ Parse ELF header """
+    def __setHeaderElf(self):
+        e_ident = str(self.__binary[:15])
 
+        ei_class = unpack("<B", e_ident[ELFFlags.EI_CLASS])[0]
+        ei_data  = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
+
+        if ei_class != ELFFlags.ELFCLASS32 and ei_class != ELFFlags.ELFCLASS64:
+            print "[Error] ELF.__setHeaderElf() - Bad Arch size"
+            return None
+
+        if ei_data != ELFFlags.ELFDATA2LSB and ei_data != ELFFlags.ELFDATA2MSB:
+            print "[Error] ELF.__setHeaderElf() - Bad architecture endian"
+            return None
+
+        if ei_class == ELFFlags.ELFCLASS32: 
+            if   ei_data == ELFFlags.ELFDATA2LSB:
+                self.__ElfHeader = Elf32_Ehdr_LSB.from_buffer_copy(self.__binary)
+            elif ei_data == ELFFlags.ELFDATA2MSB:
+                self.__ElfHeader = Elf32_Ehdr_MSB.from_buffer_copy(self.__binary)
+        elif ei_class == ELFFlags.ELFCLASS64: 
+            if   ei_data == ELFFlags.ELFDATA2LSB:
+                self.__ElfHeader = Elf64_Ehdr_LSB.from_buffer_copy(self.__binary)
+            elif ei_data == ELFFlags.ELFDATA2MSB:
+                self.__ElfHeader = Elf64_Ehdr_MSB.from_buffer_copy(self.__binary)
+
+        self.getArch() # Check if architecture is supported
+
+    """ Parse Section header """
+    def __setShdr(self):
+        shdr_num = self.__ElfHeader.e_shnum
+        base = self.__binary[self.__ElfHeader.e_shoff:]
+        shdr_l = []
+
+        e_ident = str(self.__binary[:15])
+        ei_data = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
+
+        for i in range(shdr_num):
+
+            if self.getArchMode() == CS_MODE_32:
+                if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf32_Shdr_LSB.from_buffer_copy(base)
+                elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf32_Shdr_MSB.from_buffer_copy(base)
+                else: raise Exception()
+            elif self.getArchMode() == CS_MODE_64:
+                if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf64_Shdr_LSB.from_buffer_copy(base)
+                elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf64_Shdr_MSB.from_buffer_copy(base)
+                else: raise Exception()
+            elif self.getArchMode() == CS_MODE_ARM:
+                if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
+                    if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf32_Shdr_LSB.from_buffer_copy(base)
+                    elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf32_Shdr_MSB.from_buffer_copy(base)
+                elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
+                    if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf64_Shdr_LSB.from_buffer_copy(base)
+                    elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf64_Shdr_MSB.from_buffer_copy(base)
+            else:
+                raise Exception("Not arm, not x64, not x86.\n")
+
+            self.__shdr_l.append(shdr)
+            base = base[self.__ElfHeader.e_shentsize:]
+
+        # setup name from the strings table
+        string_table = str(self.__binary[(self.__shdr_l[self.__ElfHeader.e_shstrndx].sh_offset):])
+        for i in range(shdr_num):
+            self.__shdr_l[i].str_name = string_table[self.__shdr_l[i].sh_name:].split('\0')[0]
+
+    """ Parse Program header """
+    def __setPhdr(self):
+        pdhr_num = self.__ElfHeader.e_phnum
+        base = self.__binary[self.__ElfHeader.e_phoff:]
+        phdr_l = []
+
+        e_ident = str(self.__binary[:15])
+        ei_data = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
+
+        for i in range(pdhr_num):
+            if self.getArchMode() == CS_MODE_32:
+                if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf32_Phdr_LSB.from_buffer_copy(base)
+                elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf32_Phdr_MSB.from_buffer_copy(base)
+                else: raise Exception()
+            elif self.getArchMode() == CS_MODE_64:
+                if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf64_Phdr_LSB.from_buffer_copy(base)
+                elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf64_Phdr_MSB.from_buffer_copy(base)
+                else: raise Exception()
+            elif self.getArchMode() == CS_MODE_ARM:
+                if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
+                    if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf32_Phdr_LSB.from_buffer_copy(base)
+                    elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf32_Phdr_MSB.from_buffer_copy(base)
+                    else: raise Exception()
+                elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
+                    if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf64_Shdr_LSB.from_buffer_copy(base)
+                    elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf64_Shdr_MSB.from_buffer_copy(base)
+                    else: raise Exception()
+            else:
+                raise Exception("Not arm, not x64, not x86.\n")
+
+            self.__phdr_l.append(phdr)
+            base = base[self.__ElfHeader.e_phentsize:]
+
+    def getEntryPoint(self):
+        return self.__ElfHeader.e_entry
+
+    def getExecSections(self):
+        ret = []
+        for segment in self.__phdr_l:
+            if segment.p_flags & 0x1:
+                ret +=  [{
+                            "name"    : "",
+                            "offset"  : segment.p_offset,
+                            "size"    : segment.p_memsz,
+                            "vaddr"   : segment.p_vaddr,
+                            "opcodes" : str(self.__binary[segment.p_offset:segment.p_offset+segment.p_memsz])
+                        }]
+
+        ret = []
+        for section in self.__shdr_l:
+            if section.sh_flags & 0x4:
+                ret +=  [{
+                            "name"    : section.str_name,
+                            "offset"  : section.sh_offset,
+                            "size"    : section.sh_size,
+                            "vaddr"   : section.sh_addr,
+                            "opcodes" : str(self.__binary[section.sh_offset:section.sh_offset+section.sh_size])
+                        }]
+
+        return ret
+
+    def getDataSections(self):
+        ret = []
+        for section in self.__shdr_l:
+            if not (section.sh_flags & 0x4) and (section.sh_flags & 0x2):
+                ret +=  [{
+                            "name"    : section.str_name,
+                            "offset"  : section.sh_offset,
+                            "size"    : section.sh_size,
+                            "vaddr"   : section.sh_addr,
+                            "opcodes" : str(self.__binary[section.sh_offset:section.sh_offset+section.sh_size])
+                        }]
+        return ret
+
+    def getArch(self):
+        if self.__ElfHeader.e_machine == ELFFlags.EM_386 or self.__ElfHeader.e_machine == ELFFlags.EM_X86_64: 
+            return CS_ARCH_X86
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
+            return CS_ARCH_ARM
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
+            return CS_ARCH_ARM64
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_MIPS:
+            return CS_ARCH_MIPS
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_PowerPC:
+            return CS_ARCH_PPC
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_SPARCv8p:
+            return CS_ARCH_SPARC
+        else:
+            print "[Error] ELF.getArch() - Architecture not supported"
+            sys.stderr.write("[Error] ELF.getArch() - Architecture not supported")
+            return None
+            
+    def getArchMode(self):
+        if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
+            return CS_MODE_ARM
+        elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
+            return CS_MODE_ARM
+        elif self.__ElfHeader.e_ident[ELFFlags.EI_CLASS] == ELFFlags.ELFCLASS32: 
+            return CS_MODE_32
+        elif self.__ElfHeader.e_ident[ELFFlags.EI_CLASS] == ELFFlags.ELFCLASS64: 
+            return CS_MODE_64
+        else:
+            print "[Error] ELF.getArchMode() - Bad Arch size"
+            sys.stderr.write("[Error] ELF.getArchMode() - Bad Arch size")
+            return None
+
+    def getFormat(self):
+        return "ELF"
+    
     def getProgramInfo(self):
         import hashlib
         fields = {
-            "File MD5": hashlib.md5(self.binary).hexdigest(),
+            "File MD5": hashlib.md5(self.__binary).hexdigest(),
             "File Format": self.FILETYPE_NAME,
-            "Architecture": self.getArchName(),
-            "Architecture Mode": "32-bit" if self.bin_class == capstone.CS_MODE_32 else "64-bit",
-            "Entry Point": "0x{:x}".format(self.entry_point),
+            "Architecture": "x86" if self.getArch() == CS_ARCH_X86 else "ARM",
+            "Architecture Mode": "32-bit" if self.getArchMode() == CS_MODE_32 else "64-bit",
+            "Entry Point": "0x{:x}".format(self.getEntryPoint()),
         }
-
-        if self.filename != None:
-            fields["Filename"] = self.filename
+        if self.__filename != None:
+            fields["Filename"] = self.__filename
         
         max_length = max(len(x) + len(fields[x]) for x in fields) + 2
 
@@ -163,20 +448,3 @@ class ELF:
         program_info += "#"*(max_length+12) + "\n"
 
         return program_info
-
-    dont_disassemble = ['.comment','.shstrtab','.symtab','.strtab','.note.ABI-tag','.note.gnu.build-id','.hash','.gnu.hash','.dynsym','.dynstr','.gnu.version','.gnu.version_r','.rodata','.eh_frame','.init_array','.jcr','.dynamic','.got','.got.plt','.data','.bss','.interp','.eh_frame_hdr','.plt','.init','.rel.plt','.rel.dyn','.rela.plt','.rela.dyn']
-
-class Section:
-    def __init__(self, elf, index, entry_size, word):
-        entry_offset = elf.section_header_offset + index * entry_size
-        self.sh_name      = unpack(elf.end + 'I', elf.binary[entry_offset : entry_offset + 4])[0] # Always 4 bytes
-        self.sh_type      = unpack(elf.end + 'I', elf.binary[entry_offset + 4 : entry_offset + 8])[0] # Always 4 bytes
-        self.sh_flags     = unpack(elf.end + word[0], elf.binary[entry_offset + 8 : entry_offset + 8 + word[1]])[0] # 32 or 64 bits
-        self.sh_addr      = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] : entry_offset + 8 + word[1] * 2])[0] # 32 or 64 bits
-        self.sh_offset    = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] * 2: entry_offset + 8 + word[1] * 3])[0] # 32 or 64 bits
-        self.sh_size      = unpack(elf.end + word[0], elf.binary[entry_offset + 8 + word[1] * 3 : entry_offset + 8 + word[1] * 4])[0] # 32 or 64 bits
-        self.sh_link      = unpack(elf.end + 'I', elf.binary[entry_offset + 8 + word[1] * 4 : entry_offset + 12 + word[1] * 4])[0] # Always 4 bytes
-        self.sh_info      = unpack(elf.end + 'I', elf.binary[entry_offset + 12 + word[1] * 4 : entry_offset + 16 + word[1] * 4])[0] # Always 4 bytes
-        self.sh_addralign = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 4 : entry_offset + 16 + word[1] * 5])[0] # 32 or 64 bits
-        self.sh_entrsize  = unpack(elf.end + word[0], elf.binary[entry_offset + 16 + word[1] * 5 : entry_offset + 16 + word[1] * 6])[0] # 32 or 64 bits
-

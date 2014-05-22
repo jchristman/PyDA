@@ -50,5 +50,20 @@ epilogues[CS_ARCH_X86] = {
 # Not yet implemented
 prologues[CS_ARCH_MIPS] = {}
 prologues[CS_ARCH_PPC] = {}
-prologues[CS_ARCH_ARM] = {}
-prologues[CS_ARCH_ARM64] = {}
+
+prologues[CS_ARCH_ARM] = {
+    CS_MODE_ARM: [
+        ]
+    }
+prologues[CS_ARCH_ARM64] = {
+    CS_MODE_ARM: [
+        ]
+    }
+epilogues[CS_ARCH_ARM] = {
+    CS_MODE_ARM: [
+        ]
+    }
+epilogues[CS_ARCH_ARM64] = {
+    CS_MODE_ARM: [
+        ]
+    }
