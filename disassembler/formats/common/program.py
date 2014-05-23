@@ -89,12 +89,12 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         started = False
         for line in self.program_info:
             if index in data_range:
-                data.append(data)
+                data.append(line)
             index += 1
         for section in section_array:
             for line in section.string_rep:
                 if index in data_range:
-                    data.append(section.string_rep[index])
+                    data.append(line)
                 index += 1
         return data
 

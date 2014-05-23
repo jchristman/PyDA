@@ -20,15 +20,14 @@ def build_and_run(settings_manager, disassembler, executor, server, save_manager
     '''
     root = RootApplication(settings_manager, disassembler, executor, server, save_manager)
     print 'Building app'
-    app = PyDAInterface(root)
-    #try:    app = PyDAInterface(root)
-    #except Exception as e:
-    #    print 'Exception in building interface!\n',e.message
-    #    root.shutdown()
-    #    sys.exit()
-    #except:
-    #    root.shutdown()
-    #    sys.exit()
+    try:    app = PyDAInterface(root)
+    except Exception as e:
+        print 'Exception in building interface!\n',e.message
+        root.shutdown()
+        sys.exit()
+    except:
+        root.shutdown()
+        sys.exit()
     print 'Running mainloop'
     try:    root.mainloop()
     except Exception as e:
@@ -115,6 +114,7 @@ class RootApplication(Tk):
 
     def shutdown(self):
         print 'Shutting down'
+        self.disassembler.shutdown()
         self.executor.shutdown()
         self.quit()
 

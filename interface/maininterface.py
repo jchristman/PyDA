@@ -504,25 +504,23 @@ class PyDAInterface(Frame):
 ##        self.status('Finished disassembling')
 ##        self.app.addCallback(self.processDisassembly)
 
-    '''
     def populateFunctions(self):
-        funcs = self.disassembly.getFuncs()
+        funcs = self.app.disassembler.getFuncs()
         for func in funcs:
             self.app.addCallback(self.main_queue, self.functions_listbox.insert, ('end',func.name))
 
     def populateStrings(self):
-        strings = self.disassembly.getStrings()
+        strings = self.app.disassembler.getStrings()
         for string in strings:
             self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.name))
-    '''
 
     def processDisassembly(self):
         self.status('Processing Data')
 
-        #self.debug('Processing Functions')
-        #self.populateFunctions()
-        #self.debug('Processing Strings')
-        #self.populateStrings()
+        self.debug('Processing Functions')
+        self.populateFunctions()
+        self.debug('Processing Strings')
+        self.populateStrings()
 
         self.app.addCallback(self.main_queue, self.disassembly_textbox.setDataModel, (self.app.disassembler, 'exe'))
         self.app.addCallback(self.main_queue, self.data_sections_textbox.setDataModel, (self.app.disassembler, 'data', self.progress_bar))

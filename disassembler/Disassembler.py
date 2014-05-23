@@ -35,7 +35,6 @@ class Disassembler(AbstractProcessObject, AbstractDataModel):
 
     ####### ABSTRACT PROCESS OBJECT FUNCTION #######
     def execute(self, cmd_str, args):
-        print cmd_str, args
         if cmd_str == 'DISASSEMBLE':    self.dis_object = self.disassembleFile(*args)
         elif cmd_str == 'GET':          return self.get(*args)
         elif cmd_str == 'GETITEM':      return self.getitem(*args)
@@ -43,6 +42,8 @@ class Disassembler(AbstractProcessObject, AbstractDataModel):
         elif cmd_str == 'APPEND':       self.append(*args)
         elif cmd_str == 'SEARCH':       return self.search(*args)
         elif cmd_str == 'LENGTH':       return self.length(*args)
+        elif cmd_str == 'GETFUNCS':     return self.dis_object.getFuncs()
+        elif cmd_str == 'GETSTRINGS':   return self.dis_object.getStrings()
         else:                           raise UnknownProcessCommandException()
         return None
 
@@ -51,7 +52,7 @@ class Disassembler(AbstractProcessObject, AbstractDataModel):
         return self.dis_object.get(arg1, arg2, arg3, key)
 
     def getitem(self, index, key=None):
-        return self.dis_object.get(index, key)
+        return self.dis_object.getitem(index, key)
 
     def set(self, index, item, key=None):
         self.dis_object.set(index, item, key)

@@ -147,7 +147,7 @@ class DisassemblerInterface:
         if callback:
             callback()
 
-    def get(self, arg1, arg2, arg3, key=None):
+    def get(self, arg1, arg2=None, arg3=1, key=None):
         return self.process_proxy.submit('GET', (arg1, arg2, arg3, key))
 
     def getitem(self, index, key=None):
@@ -165,8 +165,14 @@ class DisassemblerInterface:
     def length(self, key=None):
         return self.process_proxy.submit('LENGTH', (key,))
 
+    def getFuncs(self):
+        return self.process_proxy.submit('GETFUNCS', tuple())
+    
+    def getStrings(self):
+        return self.process_proxy.submit('GETSTRINGS', tuple())
+
     def shutdown(self, hard=False):
-        self.process_proxy.shutdown()
+        self.process_proxy.shutdown(hard)
 
 class ShutdownException(Exception):
     pass
