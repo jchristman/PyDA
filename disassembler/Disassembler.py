@@ -48,7 +48,7 @@ class Disassembler(AbstractProcessObject, AbstractDataModel):
 
     ####### ABSTRACT DATA MODEL FUNCTIONS #######
     def get(self, arg1, arg2=None, arg3=1, key=None):
-        return self.dis_object.get(arg1, arg2, arg3, key):
+        return self.dis_object.get(arg1, arg2, arg3, key)
 
     def getitem(self, index, key=None):
         return self.dis_object.get(index, key)
