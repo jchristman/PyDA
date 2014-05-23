@@ -278,8 +278,8 @@ class ELF:
             elif ei_data == ELFFlags.ELFDATA2MSB:
                 self.__ElfHeader = Elf64_Ehdr_MSB.from_buffer_copy(self.__binary)
 
-        print 'header: ',self.__ElfHeader.e_machine
-        print 'flags: ',self.__ElfHeader.e_flags
+        #print 'header: ',self.__ElfHeader.e_machine
+        #print 'flags: ',self.__ElfHeader.e_flags
 
         self.getArch() # Check if architecture is supported
 
@@ -371,16 +371,16 @@ class ELF:
         ret = []
         for section in self.__shdr_l:
             if section.sh_flags & 0x4:
-                if section.str_name == '.text':
-                    print hex(section.sh_type),'type'
-                    print hex(section.sh_flags),'flags'
-                    print hex(section.sh_addr),'addr'
-                    print hex(section.sh_offset),'offset'
-                    print hex(section.sh_size),'size'
-                    print hex(section.sh_link),'link'
-                    print hex(section.sh_info),'info'
-                    print hex(section.sh_addralign),'addralign'
-                    print hex(section.sh_entsize),'entsize'
+                #if section.str_name == '.text':
+                    #print hex(section.sh_type),'type'
+                    #print hex(section.sh_flags),'flags'
+                    #print hex(section.sh_addr),'addr'
+                    #print hex(section.sh_offset),'offset'
+                    #print hex(section.sh_size),'size'
+                    #print hex(section.sh_link),'link'
+                    #print hex(section.sh_info),'info'
+                    #print hex(section.sh_addralign),'addralign'
+                    #print hex(section.sh_entsize),'entsize'
                     #print repr(str(self.__binary[section.sh_offset:section.sh_offset+section.sh_size]).encode('hex'))
 
                 ret +=  [{
@@ -430,10 +430,10 @@ class ELF:
             e_ident = str(self.__binary[:15])
             ei_data = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
             if   ei_data == ELFFlags.ELFDATA2LSB:
-                print "LITTLE_ENDIAN"
+                #print "LITTLE_ENDIAN"
                 mode = CS_MODE_ARM + CS_MODE_LITTLE_ENDIAN + CS_MODE_THUMB
             elif ei_data == ELFFlags.ELFDATA2MSB:
-                print "BIG_ENDIAN"
+                #print "BIG_ENDIAN"
                 mode = CS_MODE_ARM + CS_MODE_BIG_ENDIAN + CS_MODE_THUMB
             return mode
         elif self.__ElfHeader.e_ident[ELFFlags.EI_CLASS] == ELFFlags.ELFCLASS32: 
