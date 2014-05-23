@@ -278,6 +278,9 @@ class ELF:
             elif ei_data == ELFFlags.ELFDATA2MSB:
                 self.__ElfHeader = Elf64_Ehdr_MSB.from_buffer_copy(self.__binary)
 
+        print 'header: ',self.__ElfHeader.e_machine
+        print 'flags: ',self.__ElfHeader.e_flags
+
         self.getArch() # Check if architecture is supported
 
     """ Parse Section header """
@@ -291,15 +294,15 @@ class ELF:
 
         for i in range(shdr_num):
 
-            if self.getArchMode() == CS_MODE_32:
+            if self.getArchMode() & CS_MODE_32 == CS_MODE_32:
                 if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf32_Shdr_LSB.from_buffer_copy(base)
                 elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf32_Shdr_MSB.from_buffer_copy(base)
                 else: raise Exception()
-            elif self.getArchMode() == CS_MODE_64:
+            elif self.getArchMode() & CS_MODE_64 == CS_MODE_64:
                 if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf64_Shdr_LSB.from_buffer_copy(base)
                 elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf64_Shdr_MSB.from_buffer_copy(base)
                 else: raise Exception()
-            elif self.getArchMode() == CS_MODE_ARM:
+            elif self.getArchMode() & CS_MODE_ARM == CS_MODE_ARM:
                 if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
                     if   ei_data == ELFFlags.ELFDATA2LSB: shdr = Elf32_Shdr_LSB.from_buffer_copy(base)
                     elif ei_data == ELFFlags.ELFDATA2MSB: shdr = Elf32_Shdr_MSB.from_buffer_copy(base)
@@ -327,15 +330,15 @@ class ELF:
         ei_data = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
 
         for i in range(pdhr_num):
-            if self.getArchMode() == CS_MODE_32:
+            if self.getArchMode() & CS_MODE_32 == CS_MODE_32:
                 if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf32_Phdr_LSB.from_buffer_copy(base)
                 elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf32_Phdr_MSB.from_buffer_copy(base)
                 else: raise Exception()
-            elif self.getArchMode() == CS_MODE_64:
+            elif self.getArchMode() & CS_MODE_64 == CS_MODE_64:
                 if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf64_Phdr_LSB.from_buffer_copy(base)
                 elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf64_Phdr_MSB.from_buffer_copy(base)
                 else: raise Exception()
-            elif self.getArchMode() == CS_MODE_ARM:
+            elif self.getArchMode() & CS_MODE_ARM == CS_MODE_ARM:
                 if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
                     if   ei_data == ELFFlags.ELFDATA2LSB: phdr = Elf32_Phdr_LSB.from_buffer_copy(base)
                     elif ei_data == ELFFlags.ELFDATA2MSB: phdr = Elf32_Phdr_MSB.from_buffer_copy(base)
@@ -354,20 +357,32 @@ class ELF:
         return self.__ElfHeader.e_entry
 
     def getExecSections(self):
-        ret = []
-        for segment in self.__phdr_l:
-            if segment.p_flags & 0x1:
-                ret +=  [{
-                            "name"    : "",
-                            "offset"  : segment.p_offset,
-                            "size"    : segment.p_memsz,
-                            "vaddr"   : segment.p_vaddr,
-                            "opcodes" : str(self.__binary[segment.p_offset:segment.p_offset+segment.p_memsz])
-                        }]
+        #ret = []
+        #for segment in self.__phdr_l:
+        #    if segment.p_flags & 0x1:
+        #        ret +=  [{
+        #                    "name"    : "",
+        #                    "offset"  : segment.p_offset,
+        #                    "size"    : segment.p_memsz,
+        #                    "vaddr"   : segment.p_vaddr,
+        #                    "opcodes" : str(self.__binary[segment.p_offset:segment.p_offset+segment.p_memsz])
+        #                }]
 
         ret = []
         for section in self.__shdr_l:
             if section.sh_flags & 0x4:
+                if section.str_name == '.text':
+                    print hex(section.sh_type),'type'
+                    print hex(section.sh_flags),'flags'
+                    print hex(section.sh_addr),'addr'
+                    print hex(section.sh_offset),'offset'
+                    print hex(section.sh_size),'size'
+                    print hex(section.sh_link),'link'
+                    print hex(section.sh_info),'info'
+                    print hex(section.sh_addralign),'addralign'
+                    print hex(section.sh_entsize),'entsize'
+                    #print repr(str(self.__binary[section.sh_offset:section.sh_offset+section.sh_size]).encode('hex'))
+
                 ret +=  [{
                             "name"    : section.str_name,
                             "offset"  : section.sh_offset,
@@ -410,10 +425,17 @@ class ELF:
             return None
             
     def getArchMode(self):
-        if self.__ElfHeader.e_machine == ELFFlags.EM_ARM:
-            return CS_MODE_ARM
-        elif self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
-            return CS_MODE_ARM
+        if self.__ElfHeader.e_machine == ELFFlags.EM_ARM or self.__ElfHeader.e_machine == ELFFlags.EM_ARM64:
+            mode = CS_MODE_ARM
+            e_ident = str(self.__binary[:15])
+            ei_data = unpack("<B", e_ident[ELFFlags.EI_DATA])[0]
+            if   ei_data == ELFFlags.ELFDATA2LSB:
+                print "LITTLE_ENDIAN"
+                mode = CS_MODE_ARM + CS_MODE_LITTLE_ENDIAN + CS_MODE_THUMB
+            elif ei_data == ELFFlags.ELFDATA2MSB:
+                print "BIG_ENDIAN"
+                mode = CS_MODE_ARM + CS_MODE_BIG_ENDIAN + CS_MODE_THUMB
+            return mode
         elif self.__ElfHeader.e_ident[ELFFlags.EI_CLASS] == ELFFlags.ELFCLASS32: 
             return CS_MODE_32
         elif self.__ElfHeader.e_ident[ELFFlags.EI_CLASS] == ELFFlags.ELFCLASS64: 

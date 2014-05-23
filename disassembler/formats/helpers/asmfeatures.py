@@ -48,22 +48,55 @@ epilogues[CS_ARCH_X86] = {
 }
 
 # Not yet implemented
-prologues[CS_ARCH_MIPS] = {}
-prologues[CS_ARCH_PPC] = {}
+prologues[CS_ARCH_MIPS] = {
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
+prologues[CS_ARCH_PPC] = {
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
 
 prologues[CS_ARCH_ARM] = {
-    CS_MODE_ARM: [
-        ]
-    }
-prologues[CS_ARCH_ARM64] = {
-    CS_MODE_ARM: [
-        ]
-    }
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
+
 epilogues[CS_ARCH_ARM] = {
-    CS_MODE_ARM: [
-        ]
-    }
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
+
+prologues[CS_ARCH_ARM64] = {
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
+
 epilogues[CS_ARCH_ARM64] = {
-    CS_MODE_ARM: [
-        ]
-    }
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_BIG_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : [],
+    CS_MODE_THUMB+CS_MODE_LITTLE_ENDIAN : []
+}
