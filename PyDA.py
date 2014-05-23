@@ -1,5 +1,7 @@
+# /usr/bin/python -tt -3
+
 from interface import app
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, DisassemblerInterface
 from disassembler.Disassembler import Disassembler
 from settings.settings import SettingsManager
 from server.PyDAServer import PyDAServer
@@ -22,7 +24,7 @@ class PyDA:
             save_path = PROJECT_PATH + os.path.sep + save_path
 
         executor = ThreadPoolExecutor(max_workers=max_workers, profiler_on=profiler_on) # Set up the thread executor
-        dis = Disassembler(settings_manager) # Build the disassembler
+        dis = DisassemblerInterface(Disassembler(settings_manager))
         server = PyDAServer('0.0.0.0',9000) # Set up the PyDA server
         save_manager = SaveManager(save_path)
 

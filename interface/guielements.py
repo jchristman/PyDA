@@ -436,7 +436,7 @@ class Textbox(Text):
         self.drawLines(start_index, end_index)
 
     def drawLines(self, start_index, end_index):
-        for line in self.data_model.get(start_index, end_index, key=self.key):
+        for line in self.data_model.get(start_index, end_index, 1, key=self.key):
             self.insertBottomLine(line)
 
     def redrawLine(self, index):
