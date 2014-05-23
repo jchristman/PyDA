@@ -7,7 +7,7 @@ from disassembler.formats.helpers.models import TextModel
 from contextmanagers import WidgetContextManager
 from redirectors import StdoutRedirector
 from platform import system
-import sys
+import sys, os
 import tkFileDialog, tkMessageBox
 
 class PyDAInterface(Frame):
@@ -42,6 +42,7 @@ class PyDAInterface(Frame):
         self.TEXTBOX_MAX_LINES_JUMP = self.app.settings_manager.getint('gui', 'max-lines-jump')
         self.NUM_OPCODE_BYTES_SHOWN = self.app.settings_manager.getint('disassembly','num-opcode-bytes-shown')
         self.MIN_STRING_SIZE = self.app.settings_manager.getint('disassembly','min-string-size')
+        self.SAVE_PATH = self.app.save_manager.save_path
 
     def initUI(self):
         self.locationStack = list()
@@ -51,14 +52,22 @@ class PyDAInterface(Frame):
         # Set up the Menu Bar
         self.menu_bar = MenuBar(self.app)
         self.menu_bar.addMenu('File')
-        self.menu_bar.addMenuItem('File', 'Import', self.importFile)
+        self.menu_bar.addMenuItem('File', 'Disassemble File', self.onDisassembleFile)
+        self.menu_bar.addMenuItem('File', 'Load PyDA Save', self.onLoad)
+        self.menu_bar.addMenuItem('File', 'Save', self.onSave)
         self.menu_bar.addMenuSeparator('File')
         self.menu_bar.addMenuItem('File', 'Exit', self.onExit)
 
         # Set up the Tool Bar
+        # TODO: Add images to buttons with mouseover text
         self.toolbar = ToolBar(self.app, 'top')
-        self.toolbar.addButton('Import', self.importFile, 'left')
-        self.toolbar.addButton('Share', self.share, 'right')
+        self.toolbar.addButton('Back', self.onBack, 'left')
+        self.toolbar.addVertSeperator('left')
+        self.toolbar.addButton('Disassemble File', self.onDisassembleFile, 'left')
+        self.toolbar.addButton('Load', self.onLoad, 'left')
+        self.toolbar.addButton('Save', self.onSave, 'left')
+        self.toolbar.addVertSeperator('left')
+        self.toolbar.addButton('Share', self.onShare, 'left')
 
         # Set up the status bar ##
         self.status_bar = ToolBar(self.app, 'bottom', relief='sunken', borderwidth=2)
@@ -85,14 +94,14 @@ class PyDAInterface(Frame):
                 'Functions', background='white', borderwidth=1,
                 highlightthickness=1, relief='sunken')
 
-        self.functions_listbox.bind('<Double-Button-1>', self.functionDoubleClick)
+        self.functions_listbox.bind('<Double-Button-1>', self.onFunctionDoubleClick)
 
         # Set up the strings listbox
         self.strings_listbox = self.left_notebook.addListboxWithScrollbar(
                 'Strings', background='white', borderwidth=1,
                 highlightthickness=1, relief='sunken')
 
-        self.strings_listbox.bind('<Double-Button-1>', self.stringDoubleClick)
+        self.strings_listbox.bind('<Double-Button-1>', self.onStringDoubleClick)
 
         # Set up the disassembly textbox
         self.disassembly_textbox = self.right_notebook.addTextboxWithScrollbar(
@@ -144,8 +153,8 @@ class PyDAInterface(Frame):
         self.chat_textbox.setDataModel(self.chat_data_model)
 
         # Set up the context menus
-        self.section_context_menu = ContextMenu([('Copy', self.copyString)])
-        self.address_context_menu = ContextMenu([('Copy String', self.copyString), ('Copy Value', self.copyValue)])
+        self.section_context_menu = ContextMenu([('Copy', self.onCopyString)])
+        self.address_context_menu = ContextMenu([('Copy String', self.onCopyString), ('Copy Value', self.onCopyValue)])
         self.disass_comment_context_menu = ContextMenu([(';  Comment', self.disassComment)])
         self.data_comment_context_menu = ContextMenu([(';  Comment', self.dataComment)])
         self.disass_label_context_menu   = ContextMenu([('n  Rename Label', self.disassRenameLabel)])
@@ -198,6 +207,87 @@ class PyDAInterface(Frame):
         if self.REDIR_STDOUT:
             sys.stdout = StdoutRedirector(self.stdoutMessage)
             print "Stdout is being redirected to here"
+    
+    ### START OF GUI FUNCTION CALLBACKS ###
+    def onCopyString(self, *args):
+        print 'Copy String Selected', args
+
+    def onCopyValue(self, *args):
+        print 'Copy Value Selected', args
+
+    def onFunctionDoubleClick(self, event):
+        widget = event.widget
+        selection = widget.curselection()
+        name = widget.get(selection[0])
+        index = self.disassembly.getLabelIndex(name, key="exe")
+        self.pushCurrentLocation()
+        self.goto(index, self.disassembly_textbox)
+
+    def onStringDoubleClick(self, event):
+        widget = event.widget
+        selection = widget.curselection()
+        name = widget.get(selection[0])
+        index = self.disassembly.getLabelIndex(name, key="data")
+        self.pushCurrentLocation()
+        self.goto(index, self.data_sections_textbox)
+
+    def onLoad(self):
+        file_types = [] if system() == "Darwin" else [('PyDA Saves', '*.pyda'), ('All Files', '*')]
+        dialog = tkFileDialog.Open(self, initialdir=self.SAVE_PATH, filetypes=file_types)
+        file_name = dialog.show()
+        if file_name:
+            print 'Loading %s' % file_name
+            self.disassembly = self.app.load(file_name)
+
+            # TODO: Is this really necessary? Will it do what I want?
+            self.initVars() # Reinitialize the settings per the load
+
+            if isinstance(self.disassembly, CommonProgramDisassemblyFormat):
+                self.clearWindows()
+                print 'Load successful! Putting data now.'
+                self.processDisassembly()
+            else:
+                print 'Load did not successfully return a CommonProgramDisassemblyFormat'
+
+    def onSave(self):
+        dialog = tkFileDialog.SaveAs(self, initialdir=self.SAVE_PATH, initialfile='.pyda')
+        file_name = dialog.show()
+        if file_name:
+            print 'Saving to %s' % file_name
+            self.app.save(file_name, self.disassembly)
+
+    def onBack(self):
+        self.popLastLocation()
+
+    def onDisassembleFile(self):
+        self.progress_bar.start()
+        dialog = tkFileDialog.Open(self, initialdir=os.getcwd())
+        file_name = dialog.show()
+        if file_name:
+            self.clearWindows()
+            self.app.executor.submit(self.disassembleFile, file_name)
+        else:
+            self.progress_bar.stop()
+
+    def onShare(self):
+        self.server.start()
+
+    def onError(self):
+        tkMessageBox.showerror("Error", "Could not determine file type from magic header.")
+
+    def destroy(self):
+        self.app.shutdown()
+
+    def onExit(self):
+        print 'Shutting down'
+        self.app.shutdown()
+    ### END OF GUI FUNCTION CALLBACKS ###
+
+    def clearWindows(self):
+        self.disassembly_textbox.clear()
+        self.data_sections_textbox.clear()
+        self.strings_listbox.delete(0,'end')
+        self.functions_listbox.delete(0,'end')
 
     def centerWindow(self):
         height = self.app.winfo_screenheight() * 5/6
@@ -218,22 +308,6 @@ class PyDAInterface(Frame):
     def debug(self, message):
         if self.DEBUG:
             print message + '\n',
-
-    def onError(self):
-        tkMessageBox.showerror("Error", "Could not determine file type from magic header.")
-
-    def destroy(self):
-        self.app.shutdown()
-
-    def onExit(self):
-        print 'Shutting down'
-        self.app.shutdown()
-
-    def copyString(self, *args):
-        print 'Copy String Selected', args
-
-    def copyValue(self, *args):
-        print 'Copy Value Selected', args
 
     def getCurrentRowIndex(self, textbox):
         line, _ = textbox.index('insert').split('.')
@@ -395,6 +469,7 @@ class PyDAInterface(Frame):
         self.goto(index, textbox)
 
     def goto(self, index, textbox):
+        # TODO: Move this functionality out of the interface into the data structure
         # print "going to:",index
         is_disassembly = textbox == self.disassembly_textbox
         key = "exe" if is_disassembly else "data"
@@ -414,29 +489,6 @@ class PyDAInterface(Frame):
         box = self.right_notebook.tabs().index(self.right_notebook.select())
         # TODO: make this less hacky if possible
         return self.disassembly_textbox if box == 0 else self.data_sections_textbox
-
-    def functionDoubleClick(self, event):
-        widget = event.widget
-        selection = widget.curselection()
-        name = widget.get(selection[0])
-        index = self.disassembly.getLabelIndex(name, key="exe")
-        self.pushCurrentLocation()
-        self.goto(index, self.disassembly_textbox)
-
-    def stringDoubleClick(self, event):
-        widget = event.widget
-        selection = widget.curselection()
-        name = widget.get(selection[0])
-        index = self.disassembly.getLabelIndex(name, key="data")
-        self.pushCurrentLocation()
-        self.goto(index, self.data_sections_textbox)
-
-    def importFile(self):
-        self.progress_bar.start()
-        dialog = tkFileDialog.Open(self)
-        file_name = dialog.show()
-        if file_name:
-            self.app.executor.submit(self.disassembleFile, file_name)
 
     def disassembleFile(self, file_name):
         self.debug('Reading %s' % file_name)
@@ -481,9 +533,6 @@ class PyDAInterface(Frame):
     def printStats(self):
         stats = self.app.executor.getProfileStats()
         stats.sort_stats('cumulative').print_stats()
-
-    def share(self):
-        self.server.start()
 
 if __name__ == '__main__':
     build_and_run()

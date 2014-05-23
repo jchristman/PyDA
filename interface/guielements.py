@@ -105,6 +105,19 @@ class ToolBar(fm):
         '''
         return self.addElement(Label(self, text=text), pack_side)
 
+    def addVertSeperator(self, pack_side):
+        '''
+        Arguments:
+        pack_side - the side in which the vertical seperator will be packed
+
+        Description:
+        Adds a vertical seperator to the toolbar
+        '''
+        padding = 4
+        self.addElement(Frame(self, width=padding), pack_side)
+        self.addElement(Frame(self, height=20, width=1, background='darkgray'), pack_side)
+        self.addElement(Frame(self, width=padding), pack_side)
+
     def addProgressBar(self, pack_side, **kwargs):
         '''
         Arguments:
