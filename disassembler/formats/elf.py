@@ -280,7 +280,6 @@ class ELF:
 
         #print 'header: ',self.__ElfHeader.e_machine
         #print 'flags: ',self.__ElfHeader.e_flags
-
         self.getArch() # Check if architecture is supported
 
     """ Parse Section header """

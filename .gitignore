@@ -55,6 +55,9 @@ docs/_build/
 # OSX
 .DS_Store
 
+# git mergetool
+*.orig
+
 # PyDA Stuff
 *.stats
 *.pyda

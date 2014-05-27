@@ -2,7 +2,8 @@ from concurrent.futures import AbstractProcessObject, UnknownProcessCommandExcep
 from disassembler.formats.helpers.models import AbstractDataModel
 from settings import *
 import sys
-# import traceback
+from disassembler.formats.helpers.exceptions import BadMagicHeaderException
+import traceback
 
 class Disassembler(AbstractProcessObject, AbstractDataModel):
     def __init__(self, settings_manager, multiprocessing_proxy=None):
@@ -15,9 +16,12 @@ class Disassembler(AbstractProcessObject, AbstractDataModel):
             try:
                 self.dis = format.disassemble(self.binary, filename=filename)
                 break
-            except:
+            except BadMagicHeaderException:
                 print 'File header did not match %s' % format.FILETYPE_NAME
-                # traceback.print_exc()
+            except:
+                print 'Exception while parsing file with the %s parser.' % format.FILETYPE_NAME
+                traceback.print_exc()
+
         if not self.dis:
             raise UnsupportedBinaryFormatException()
 

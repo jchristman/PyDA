@@ -3,6 +3,7 @@ from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.helpers.flags import Flags
+from disassembler.formats.helpers.exceptions import BadMagicHeaderException
 from ctypes import *
 from struct import unpack
 
@@ -11,6 +12,7 @@ def disassemble(binary, filename=None):
 #except: return False
 
 FILETYPE_NAME = 'PE'
+
 # The parsing logic below is blatantly ripped off of ROPGadget v5.0:
 # PE class =========================================================================================
 
