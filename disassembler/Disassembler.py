@@ -1,5 +1,6 @@
 from settings import *
-# import traceback
+from disassembler.formats.helpers.exceptions import BadMagicHeaderException
+import traceback
 
 class Disassembler:
     def __init__(self, settings_manager):
@@ -11,9 +12,11 @@ class Disassembler:
             try:
                 self.dis = format.disassemble(self.binary, filename=filename)
                 break
-            except:
+            except BadMagicHeaderException:
                 print 'File header did not match %s' % format.FILETYPE_NAME
-                # traceback.print_exc()
+            except:
+                print 'Exception while parsing file with the %s parser.' % format.FILETYPE_NAME
+                traceback.print_exc()
 
         if not self.dis:
             raise UnsupportedBinaryFormatException()
