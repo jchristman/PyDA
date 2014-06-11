@@ -1,6 +1,4 @@
 '''
-Author: Frank Adkins
-
 A StringFinder locates all ctype null-terminated strings within a 
 sequence of bytes and returns a list of properly constructed
 StringFormat objects.

@@ -1,9 +1,11 @@
 import struct, re
+import sys
 from disassembler.formats.helpers.label import Label
 from disassembler.formats.helpers import asmfeatures
 from disassembler.formats.helpers.stringfinder import StringFinder
 from disassembler.formats.helpers.comparators import InstComparator, AddressComparator, MnemonicComparator, OpStrComparator, BytesComparator, CommentComparator
 from disassembler.formats.helpers.comparators import LabelComparator, LabelAddressComparator, LabelNameComparator, LabelItemComparator
+from disassembler.formats.helpers.addressrangemanager import AddressRangeManager
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.common.function import CommonFunctionFormat
 
@@ -25,8 +27,6 @@ class CommonSectionFormat:
         self.functions = []
         self.strings = {}
         self.labels = {}
-        self.functions_reverse_lookup = {}
-
         self.string_rep = []
 
     ### ADDING FUNCS ###
@@ -37,7 +37,6 @@ class CommonSectionFormat:
     def addFunction(self, start_index, end_index, name):
         func = CommonFunctionFormat(start_index, end_index, name, self)
         self.functions.append(func)
-        self.functions_reverse_lookup[func.start_address] = func
     
     def addLabel(self, address, name, item, xrefs=None):
         self.labels[address] = Label(address, name, item, xrefs)
@@ -109,6 +108,18 @@ class CommonSectionFormat:
         self.functions = sorted(self.functions, key=lambda x: x.start_address)
         # self.strings = [self.strings[k] for k in sorted(self.strings, key=self.strings.get, reverse=True)]
         return self
+
+    def searchObject(self, string):
+        '''
+        This function will return the object represented by the given string.
+        '''
+        pass
+
+    def searchIndex(self, string):
+        '''
+        This function will return the index of the given string in the data model.
+        '''
+        pass
     
     def search(self, string):
         '''
@@ -128,12 +139,14 @@ class CommonSectionFormat:
             raise ImproperParameterException('Search method only accepts InstComparator as a parameter')
         if inst_comparator in self.instructions:
             match = inst_comparator.match
+            # print 'match is:',[match.address, match.mnemonic, match.op_str]
+            # If the address mnemonic and op_str are in this line then we found it
+            features = ['0x%x' % match.address, match.mnemonic, match.op_str]
+            # print 'features:',features
             for index, line in enumerate(self.string_rep):
-                # If the address mnemonic and op_str are in this line then we found it
-                features = ['0x%x' % match.address, match.mnemonic, match.op_str]
-                if all((x in line for x in features)):
-                    break
-                return (self.instructions.index(match), match)
+                # print 'line', line
+                if all(x in line for x in features):
+                    return (index, match)
         return None
 
     def getLabelIndex(self, name):
@@ -152,11 +165,22 @@ class CommonSectionFormat:
                     return index
         return None
 
-    def serialize(self):
+    def serialize(self, start_index=0, end_index=None):
+        rep = ''
+        # print 'start/end:',[start_index, end_index]
         if not self.flags.execute:
-            self.string_rep = CommonDataSectionFormat.toString(self)
+            rep = CommonDataSectionFormat.toString(self, start_index, end_index)
         else:
-            self.string_rep = CommonExecutableSectionFormat.toString(self)
+            rep = CommonExecutableSectionFormat.toString(self, start_index, end_index)
+
+        curr = self.string_rep
+        if end_index is None:
+            curr[start_index:] = rep
+        else:
+            curr[start_index:end_index] = rep
+        self.string_rep = curr
+
+        # print 'rep is now:',''.join([x for x in self.string_rep[0:15]])
 
     ### ACCESSOR FUNCS ###
     def getBytes(self): 
@@ -174,11 +198,13 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
     are just CommonExecutableSectionFormat object
     '''
     @staticmethod
-    def toString(section): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
+    def toString(section, start_index=0, end_index=None): # TODO: These could use a start and end index to speed things up, but that's an optimization thing.
         '''
         Accessible as a static method. CommonSectionFormat.toString(section)
         '''
         string_array = []
+        if end_index is None:
+            end_index = sys.maxint
 
         fields = {
             "Section name": section.name,
@@ -198,33 +224,42 @@ class CommonExecutableSectionFormat(CommonSectionFormat):
 
         string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
+
+        # TODO: verify the efficiency of this
+        # Logic to support start and end indices 
+        current_size = len(string_array)-1
+        if start_index >= current_size:
+            string_array = []
+        line_count = current_size
+
         for inst in section.instructions:
             data = ''
-            if inst.address in section.functions_reverse_lookup.keys():
-                data += '%s%s: %s0x%x%s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_ENDL) # Empty newline
-                data += '%s%s: %s0x%x%s %s %s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_LABEL, section.labels[inst.address].name + ":",
-                    section.program.PYDA_ENDL)
+            if inst.address in section.labels:
+                line_count += len(section.labels[inst.address])
+                if start_index <= line_count < end_index: # only add the line if we want it
+                    data += section.labels[inst.address].toString(
+                        section.program.PYDA_BEGL,
+                        section.program.PYDA_SECTION, section.name, 
+                        section.program.PYDA_ADDRESS, section.program.PYDA_LABEL,
+                        section.program.PYDA_ENDL)
+                    
 
-            data += '%s%s%s: %s0x%x \t %s%s \t %s%s  %s%s  %s%s %s\n' % (
-                    section.program.PYDA_BEGL,
-                    section.program.PYDA_SECTION, section.name, 
-                    section.program.PYDA_ADDRESS, inst.address,
-                    section.program.PYDA_BYTES, inst.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN), 
-                    section.program.PYDA_MNEMONIC, inst.mnemonic, 
-                    section.program.PYDA_OP_STR, inst.op_str,
-                    section.program.PYDA_COMMENT, '' if inst.comment is None else '; %s' % inst.comment,
-                    section.program.PYDA_ENDL
-                    )
+            line_count += 1
+            if start_index <= line_count < end_index: # only add the line if we want it
+                data += inst.toString(
+                        section.program.PYDA_BEGL,
+                        section.program.PYDA_SECTION, section.name, 
+                        section.program.PYDA_ADDRESS, 
+                        section.program.PYDA_BYTES, section.program.NUM_OPCODE_BYTES_SHOWN, 
+                        section.program.PYDA_MNEMONIC,
+                        section.program.PYDA_OP_STR,
+                        section.program.PYDA_COMMENT,
+                        section.program.PYDA_ENDL
+                        )
 
             string_array += [string + '\n' for string in data.split('\n') if not string == '']
 
-        if len(section.instructions) > 0:
+        if len(section.instructions) > 0 and end_index == sys.maxint:
             string_array += ['\n']
 
         return string_array
@@ -235,11 +270,13 @@ class CommonDataSectionFormat(CommonSectionFormat):
     are just CommonSectionFormat object
     '''
     @staticmethod
-    def toString(section):
+    def toString(section, start_index=0, end_index=None):
         '''
         Accessible as a static method. CommonDataSectionFormat.toString(section)
         '''
         string_array = []
+        if end_index is None:
+            end_index = sys.maxint
 
         fields = {
             "Section name": section.name,
@@ -258,6 +295,14 @@ class CommonDataSectionFormat(CommonSectionFormat):
 
         string_array += [string + '\n' for string in section_info.split('\n') if not string == '']
 
+        # TODO: verify the efficiency of this
+        # Logic to support start and end indices 
+        current_size = len(string_array)
+        if start_index >= current_size:
+            string_array = []
+        line_count = current_size
+
+
         bytes = section.getBytes()
         index = 0
         while index < len(bytes):
@@ -265,40 +310,49 @@ class CommonDataSectionFormat(CommonSectionFormat):
             current_addr = index + section.virtual_address
 
             if current_addr in section.strings:
-                data += '%s%s: %s0x%x%s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, current_addr,
-                    section.program.PYDA_ENDL) # Empty newline
+                line_count += 1
+                if start_index <= line_count < end_index: # only add the line if we want it
+                    data += '%s%s: %s0x%x%s\n' % (
+                        section.program.PYDA_SECTION, section.name,
+                        section.program.PYDA_ADDRESS, current_addr,
+                        section.program.PYDA_ENDL) # Empty newline
 
-                data += '%s%s: %s0x%x%s %s %s\n' % (
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, current_addr,
-                    section.program.PYDA_LABEL, section.labels[current_addr].name + ":",
-                    section.program.PYDA_ENDL)
+                line_count += 1
+                if start_index <= line_count < end_index: # only add the line if we want it
+                    data += '%s%s: %s0x%x%s %s %s\n' % (
+                        section.program.PYDA_SECTION, section.name,
+                        section.program.PYDA_ADDRESS, current_addr,
+                        section.program.PYDA_LABEL, section.labels[current_addr].name + ":",
+                        section.program.PYDA_ENDL)
 
                 # Then, write the string itself
                 the_string = section.strings[current_addr]
                 string_contents = the_string.contents[:-1] if '\x00' in the_string.contents else the_string.contents # get rid of trailing null bytes in the string.
-                data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s',0 %s\n" % (
-                    section.program.PYDA_BEGL,
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, current_addr,
-                    section.program.PYDA_BYTES, the_string.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN),
-                    section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT, string_contents,
-                    section.program.PYDA_ENDL)
+                
+                line_count += 1
+                if start_index <= line_count < end_index: # only add the line if we want it
+                    data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s',0 %s\n" % (
+                        section.program.PYDA_BEGL,
+                        section.program.PYDA_SECTION, section.name,
+                        section.program.PYDA_ADDRESS, current_addr,
+                        section.program.PYDA_BYTES, the_string.getByteString(section.program.NUM_OPCODE_BYTES_SHOWN),
+                        section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT, string_contents,
+                        section.program.PYDA_ENDL)
                 
                 index += len(string_contents)
 
             #Otherwise, just mark it as a byte
             else:
                 byte = bytes[index].encode("hex")
-                data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s' %s\n" % (
-                    section.program.PYDA_BEGL,
-                    section.program.PYDA_SECTION, section.name,
-                    section.program.PYDA_ADDRESS, current_addr,
-                    section.program.PYDA_BYTES, byte,
-                    section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT,
-                    byte, section.program.PYDA_ENDL)
+                line_count += 1
+                if start_index <= line_count < end_index: # only add the line if we want it
+                    data += "%s%s%s: %s0x%x \t %s %s \t %s db %s '%s' %s\n" % (
+                        section.program.PYDA_BEGL,
+                        section.program.PYDA_SECTION, section.name,
+                        section.program.PYDA_ADDRESS, current_addr,
+                        section.program.PYDA_BYTES, byte,
+                        section.program.PYDA_MNEMONIC, section.program.PYDA_COMMENT,
+                        byte, section.program.PYDA_ENDL)
                 index += 1
 
             string_array += [string + '\n' for string in data.split('\n') if not string == '']

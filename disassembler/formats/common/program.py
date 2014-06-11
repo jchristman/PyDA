@@ -19,6 +19,8 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         self.executable_sections = []
         self.data_sections = []
 
+        self.header_length = self.getHeaderLength()
+
     def initVars(self):
         self.PYDA_SECTION = self.settings_manager.get('context','pyda-section')
         self.PYDA_ADDRESS = self.settings_manager.get('context', 'pyda-address')
@@ -70,6 +72,45 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
 
         return strings
 
+    def getSectionWithIndex(self, sections, index):
+        offset = self.header_length
+        if index < offset:
+            return None
+        
+        for sec in sections:
+            offset += len(sec.string_rep)
+            if index < offset:
+                return sec
+
+        return None
+
+    def serializeRange(self, start, end, key):
+        # print 'overall range:', [start, end]
+        sections = None
+        if key == 'exe':
+            sections = self.executable_sections
+        elif key == 'data':
+            sections = self.data_sections
+        else:
+            return None
+
+        offset_s = start
+        offset_s -= self.header_length
+        offset_e = end
+        offset_e -= self.header_length
+        for sec in sections:
+            if offset_s < 0:
+                return
+            if offset_s > len(sec.string_rep):
+                offset_s -= len(sec.string_rep)
+                offset_e -= len(sec.string_rep)
+                continue
+            # print 'serializing:', [sec.name, offset_s, offset_e]
+            sec.serialize(offset_s, offset_e)
+            offset_s -= len(sec.string_rep)
+            offset_e -= len(sec.string_rep)
+
+
     def get(self, arg1, arg2=None, arg3=1, key=None):
         if arg2 is None:
             arg2 = arg1
@@ -108,29 +149,66 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         self.text[index] = item
     '''
 
-    def search(self, string, key=None):
+    def search(self, string, key=None, index=None):
+        # print "searching for: ", [string, key, index]
+        sections = None
         if key == 'exe':
-            return self._search(string, self.executable_sections)
+            sections = self.executable_sections
         elif key == 'data':
-            return self._search(string, self.data_sections)
-        return None
+            sections = self.data_sections
+        else: 
+            return None
+
+        if index is None:
+            return self._search(string, sections)
+        else:
+            return self._searchWithIndex(string, sections, index)
 
     def _search(self, string, sections):
-        offset = len(self.program_info)
+        offset = self.header_length
         for section in sections:
             result = section.search(string)
             if result:
                 index, obj = result
-                index += offset
-                return (index, obj)
+                return (index + offset, obj)
             offset += len(section.string_rep)
         return None
 
+    def _searchWithIndex(self, string, sections, index):
+        offset = self.header_length
+        if index < offset:
+            return None
+
+        for section in sections:
+            temp = offset + len(section.string_rep)
+            if index < temp: # then index is in this section
+                result = section.search(string)
+                # print 'result',result
+                if result:
+                    ind, obj = result
+                    return (ind + offset, obj)
+                else:
+                    # The above should always return something. Error otherwise
+                    print 'Object was not found in this section for some reason'
+                    raise Exception
+                break
+            offset = temp
+
+        return None
+
+    def searchIndex(self, string):
+        '''
+        This function will return the index of the given string in the data model.
+        '''
+        for index, line in enumerate(self.string_rep):
+            if line == string:
+                return index 
+
     def length(self, key=None):
         if key == 'exe':
-            return len(self.program_info) + sum(len(section.string_rep) for section in self.executable_sections)
+            return self.header_length + sum(len(section.string_rep) for section in self.executable_sections)
         elif key == 'data':
-            return len(self.program_info) + sum(len(section.string_rep) for section in self.data_sections)
+            return self.header_length + sum(len(section.string_rep) for section in self.data_sections)
         else: 
             return 0
 
@@ -142,7 +220,7 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
         return None
 
     def _getLabelIndex(self, name, sections):
-        offset = len(self.program_info)
+        offset = self.header_length
         for section in sections:
             result = section.getLabelIndex(name)
             if result:
@@ -150,22 +228,67 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
             offset += len(section.string_rep)
         return None
 
-    def render(self):
-        for section in self.executable_sections:
-            section.serialize()
-        for section in self.data_sections:
-            section.serialize()
+    def renderSection(self, s):
+        s.serialize()
 
-    def setCommentForLine(self, line_contents, comment):
-        result = self.search(line_contents, key="exe")
-        if not result:
-            return False
-        _, instruction = result
-        if isinstance(instruction, CommonInstFormat):
-            instruction.comment = comment
-            self.render()
-            return True
-        return False
+    def getHeaderLength(self):
+        return len(self.program_info)
+
+    def setCommentForLine(self, line_contents, index, comment):
+        result = self.search(line_contents, key='exe', index=index)
+        if result is None:
+            print "Line wasn't found!"
+            return None
+        ind, inst = result
+        if not isinstance(inst, CommonInstFormat):
+            return None
+        inst.comment = comment
+
+        self.serializeRange(ind, ind+1, key='exe')
+
+        return True
+
+    # def setCommentForLine(self, line_contents, comment):
+    #     result = self.search(line_contents, key="exe")
+    #     if not result:
+    #         return False
+    #     _, instruction = result
+    #     if isinstance(instruction, CommonInstFormat):
+    #         instruction.comment = comment
+
+    #         # TODO: Replace this with something better in AddressRangeManager. Very Kludgy
+    #         approx_location = 0
+    #         for s in self.executable_sections:
+    #             start = s.instructions[0].address
+    #             end = s.instructions[-1].address
+    #             if start <= instruction.address  <= end:
+    #                 # instruction is in this section
+    #                 start, end = self.getRenderingBounds(s, instruction.address)
+    #                 s.serialize(start_index=start, end_index=end)
+    #                 return True
+    #     return False
+                    
+
+    # def getRenderingBounds(self, section, address, size=40):
+    #     s = section
+    #     approx_location = int((address-start)/(end-start))
+    #     half = size / 2
+    #     done = False
+    #     while not done:
+    #         if s.instructions[approx_location-half].address <= address and s.instructions[approx_location-half].address >= address:
+    #             # Found our window to render
+    #             done = True
+    #         elif s.instructions[approx_location-half].address > address:
+    #             # Need to go down more
+    #             approx_location -= size
+    #         elif s.instruction[approx_location+half].address < address:
+    #             # Need to go up more
+    #             approx_location += size
+
+    #     start = approx_location - half if approx_location - half >= 0 else 0
+    #     end = approx_location + half if approx_location + half <= len(s.instructions) else len(s.instructions)
+    #     return start, end
+
 
     def renameLabel(self, line_contents, new_name):
         m = re.search(r'0x([a-fA-F0-9]+)', line_contents)
@@ -178,7 +301,7 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
                     label.name = new_name
                     label.item.name = new_name
                     label_changed = True
-                    self.render()
+                    self.renderSection(sec)
                     break
             
         return label_changed

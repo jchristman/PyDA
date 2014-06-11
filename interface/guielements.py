@@ -408,6 +408,10 @@ class Textbox(Text):
         if progress_bar:
             self.context_manager.addCallback(progress_bar.stop)
 
+    def setContextManager(self, context_manager):
+        self.context_manager = context_manager
+        # self.bind('<Key>', self.context_manager.keyHandler)
+
     def appendData(self, data, moveto_end=False):
         self.data_model.append(data, key=self.key)
         self.insertBottomLine(self.data_model.getitem(-1, key=self.key))
@@ -582,6 +586,9 @@ class Textbox(Text):
                 self.yview_moveto(view_start)
         else:
             print args
+
+    def getCurrentDataOffset(self):
+        return self.current_data_offset
 
 class ContextMenu(Menu):
     def __init__(self, label_command_pairs):
