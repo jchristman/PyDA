@@ -4,7 +4,7 @@ from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
 from disassembler.formats.helpers.models import TextModel
-from contextmanagers import WidgetContextManager
+from contextmanagers import WidgetContextManager, AssemblyTextboxContextManager
 from redirectors import StdoutRedirector
 from platform import system
 import sys, os
@@ -112,6 +112,8 @@ class PyDAInterface(Frame):
                 max_lines_jump=self.TEXTBOX_MAX_LINES_JUMP,
                 background="white", borderwidth=1, highlightthickness=1, relief='sunken')
 
+        # responder = AssemblyTextboxResponder(self.disassembly_textbox)
+
         # Set up the data section textbox
         # self.data_sections_textbox = self.right_notebook.addTextboxWithScrollbar(
         #         'Data Sections', background="white", borderwidth=1,
@@ -168,8 +170,8 @@ class PyDAInterface(Frame):
 
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbox
-        self.disassembly_textbox_context_manager = WidgetContextManager(
-                self.app, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
+        self.disassembly_textbox_context_manager = AssemblyTextboxContextManager(
+                self.app, self.disassembly, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', self.section_context_menu),
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
@@ -181,14 +183,13 @@ class PyDAInterface(Frame):
                     (self.PYDA_GENERIC, 'black', None),
                     (self.PYDA_ENDL, 'black', self.disass_comment_context_menu)], )
 
-        self.disassembly_textbox.context_manager = self.disassembly_textbox_context_manager
-
+        self.disassembly_textbox.setContextManager(self.disassembly_textbox_context_manager)
         self.disassembly_textbox.bind('<Key>', self.keyHandler)
 
         data_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the data sections textbox
-        self.data_textbox_context_manager = WidgetContextManager(
-                self.app, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP,
+        self.data_textbox_context_manager = AssemblyTextboxContextManager(
+                self.app, self.disassembly, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', None),
                     (self.PYDA_MNEMONIC, 'blue', None),
@@ -199,8 +200,7 @@ class PyDAInterface(Frame):
                     (self.PYDA_GENERIC, 'black', None),
                     (self.PYDA_ENDL, 'black', self.data_comment_context_menu)])
 
-        self.data_sections_textbox.context_manager = self.data_textbox_context_manager
-
+        self.data_sections_textbox.setContextManager(self.data_textbox_context_manager)
         self.data_sections_textbox.bind('<Key>', self.keyHandler)
 
         # Redirect stdout to the debug window
@@ -326,13 +326,9 @@ class PyDAInterface(Frame):
 
     def comment(self, event):
         if self.disassembly is None:
-            return
+            return # Nothing is loaded yet
 
-        textbox = None
-        if isinstance(event, Textbox):
-            textbox = event
-        else:
-            textbox = event.widget
+        textbox = event if isinstance(event, Textbox) else event.widget
 
         tl = Toplevel(master=self.app)
         tl.title("Insert Comment")
@@ -351,13 +347,14 @@ class PyDAInterface(Frame):
         e.pack(side=LEFT)
 
         def addComment(*args):
-            # print 'Comment:', e.get()
             comment = e.get()
             contents = self.getCurrentLine(textbox)
-            result = self.disassembly.setCommentForLine(contents, comment)
+            index = int(float(self.getCurrentRowIndex(textbox))) + textbox.getCurrentDataOffset()
+            result = self.disassembly.setCommentForLine(contents, index, comment)
             if result:
-                index = self.getCurrentRowIndex(textbox)
-                textbox.redrawLine(index)
+                tb_index = self.getCurrentRowIndex(textbox)
+                # print 'redrawing:',tb_index
+                textbox.redrawLine(tb_index)
 
             tl.destroy()
 
@@ -427,7 +424,6 @@ class PyDAInterface(Frame):
 
     def keyHandler(self, event):
         # print event.keysym
-
         c = event.char
         if c == ';':
             self.comment(event)
@@ -444,6 +440,10 @@ class PyDAInterface(Frame):
             elif event.keysym == 'a':
                 textbox = event.widget
                 textbox.tag_add('sel', '1.0', 'end')
+            elif event.keysym == 'o':
+                self.onDisassembleFile()
+            elif event.keysym == 'q':
+                self.onExit()
             elif event.keysym == 'Tab':
                 return
 
@@ -481,7 +481,7 @@ class PyDAInterface(Frame):
         self.selectTab(tab_index)
 
     def selectTab(self, index):
-        # TODO: make this less hacky if possible
+        # TODO: make this less hacky if possible - i.e. find a way to keep a list of notebooks
         tab = self.right_notebook.tabs()[index]
         self.right_notebook.select(tab)
 

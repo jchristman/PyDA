@@ -2,13 +2,29 @@ from Tkinter import CURRENT
 from tkFont import Font
 
 class WidgetContextManager:
-    def __init__(self, app, processing_queue, widget, separator, begin_line, click_string, tags):
+    def __init__(self, app, processing_queue, widget, click_string):
         self.app = app
         self.processing_queue = processing_queue
-        self.separator = separator
-        self.begin_line = begin_line
         self.widget = widget
         self.click_string = click_string
+
+    def addCallback(self, func, args=None, kwargs=None):
+        self.app.addCallback(self.processing_queue, func, args, kwargs)
+
+    def clearQueue(self):
+        with self.processing_queue.mutex:
+            self.processing_queue.queue.clear()
+
+    def yview_moveto(self, index):
+        self.app.addCallback(self.processing_queue, self.widget.yview_moveto, (index,))
+
+
+class AssemblyTextboxContextManager(WidgetContextManager):
+    def __init__(self, app, disassembly, processing_queue, widget, separator, begin_line, click_string, tags):
+        WidgetContextManager.__init__(self, app, processing_queue, widget, click_string)
+        self.disassembly = disassembly
+        self.separator = separator
+        self.begin_line = begin_line
         self.processing_queue = processing_queue
 
         self.is_line = False
@@ -34,6 +50,8 @@ class WidgetContextManager:
             return ''
     
     def click_callback(self, event):
+        self.widget.mark_set('insert', 'current') # move the cursor to mouse position
+
         tags = self.widget.tag_names(CURRENT)
         if len(tags) > 1:
             # Get the menu object and set its context equal to the uuid
@@ -42,22 +60,16 @@ class WidgetContextManager:
                 for i in xrange(0, len(ranges), 2):
                     start = ranges[i]
                     stop = ranges[i+1]
-                    #print 'Line clicked is:',repr(self.widget.get(start, stop))
+                    print 'Line clicked is:',repr(self.widget.get(start, stop))
+                    line = str(self.widget.get(start, stop))
 
             ranges = self.widget.tag_ranges(tags[1])
             clicked_data = self.widget.get(ranges[0], ranges[1])
             # index = self.widget.data_model.search(clicked_data, key=self.widget.key)
             # print 'Data is at index %i of data model' % index
             menu = self.tag_data[tags[0]][1]
-            menu.context = clicked_data
+            menu.context = clicked_data # this is the info that gets read by the callback
             menu.post(event.x_root + 5, event.y_root + 5)
-
-    def addCallback(self, func, args=None, kwargs=None):
-        self.app.addCallback(self.processing_queue, func, args, kwargs)
-
-    def clearQueue(self):
-        with self.processing_queue.mutex:
-            self.processing_queue.queue.clear()
 
     def insert(self, index, line):
         try: line = [x for x in line.split(self.separator) if not x == '']
@@ -71,6 +83,7 @@ class WidgetContextManager:
             indices = ('1.0', '2.0')
         else:
             indices = ('end -2 line linestart', 'end -2 line lineend')
+            # indices = ('end -2 line linestart', 'end -1 line linestart')
         for part in line:
             part_type = self.separator + part[0]
             if part_type == self.begin_line:
@@ -86,6 +99,4 @@ class WidgetContextManager:
                                   indices[0], indices[1]))
             self.current_line += 1
 
-    def yview_moveto(self, index):
-        self.app.addCallback(self.processing_queue, self.widget.yview_moveto, (index,))
-
+    
