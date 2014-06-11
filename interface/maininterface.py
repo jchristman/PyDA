@@ -219,7 +219,8 @@ class PyDAInterface(Frame):
         widget = event.widget
         selection = widget.curselection()
         name = widget.get(selection[0])
-        index = self.disassembly.getLabelIndex(name, key="exe")
+        # index = self.disassembly.getLabelIndex(name, key="exe")
+        index = self.app.disassembler.getLabelIndex(name, key="exe")
         self.pushCurrentLocation()
         self.goto(index, self.disassembly_textbox)
 
@@ -227,7 +228,8 @@ class PyDAInterface(Frame):
         widget = event.widget
         selection = widget.curselection()
         name = widget.get(selection[0])
-        index = self.disassembly.getLabelIndex(name, key="data")
+        # index = self.disassembly.getLabelIndex(name, key="data")
+        index = self.app.disassembler.getLabelIndex(name, key="data")
         self.pushCurrentLocation()
         self.goto(index, self.data_sections_textbox)
 
@@ -325,7 +327,7 @@ class PyDAInterface(Frame):
         self.comment(self.data_sections_textbox)
 
     def comment(self, event):
-        if self.disassembly is None:
+        if not self.app.disassembler.isInitialized():
             return # Nothing is loaded yet
 
         textbox = event if isinstance(event, Textbox) else event.widget
@@ -350,10 +352,9 @@ class PyDAInterface(Frame):
             comment = e.get()
             contents = self.getCurrentLine(textbox)
             index = int(float(self.getCurrentRowIndex(textbox))) + textbox.getCurrentDataOffset()
-            result = self.disassembly.setCommentForLine(contents, index, comment)
+            result = self.app.disassembler.setCommentForLine(contents, index, comment)
             if result:
                 tb_index = self.getCurrentRowIndex(textbox)
-                # print 'redrawing:',tb_index
                 textbox.redrawLine(tb_index)
 
             tl.destroy()
@@ -373,7 +374,7 @@ class PyDAInterface(Frame):
         self.dataRenameLabel(self.data_sections_textbox)
 
     def renameLabel(self, event):
-        if self.disassembly is None:
+        if not self.app.disassembler.isInitialized():
             return
 
         textbox = None
@@ -401,7 +402,7 @@ class PyDAInterface(Frame):
         def rename(*args):
             new_name = e.get()
             contents = self.getCurrentLine(textbox)
-            result = self.disassembly.renameLabel(contents, new_name)
+            result = self.app.disassembler.renameLabel(contents, new_name)
             if result:
                 textbox.redrawLine(self.getCurrentRowIndex(textbox))
                 self.functions_listbox.delete(0, 'end')
@@ -473,7 +474,7 @@ class PyDAInterface(Frame):
         # print "going to:",index
         is_disassembly = textbox == self.disassembly_textbox
         key = "exe" if is_disassembly else "data"
-        fraction = index / float(self.disassembly.length(key=key))
+        fraction = index / float(self.app.disassembler.length(key=key))
         fraction -= .0001 # enough so that the text isn't cut off
         textbox.changeView("moveto", fraction)
         textbox.setCursor(str(index) + ".0")

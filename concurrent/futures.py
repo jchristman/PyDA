@@ -141,11 +141,13 @@ class AbstractProcessObject:
 class DisassemblerInterface:
     def __init__(self, process_object):
         self.process_proxy = ProcessProxy(process_object)
+        self.intialized = False
 
     def disassemble(self, file_name, callback=None):
         self.process_proxy.submit('DISASSEMBLE', file_name)
         if callback:
             callback()
+        self.initialized = True
 
     def get(self, arg1, arg2=None, arg3=1, key=None):
         return self.process_proxy.submit('GET', (arg1, arg2, arg3, key))
@@ -170,6 +172,18 @@ class DisassemblerInterface:
     
     def getStrings(self):
         return self.process_proxy.submit('GETSTRINGS', tuple())
+
+    def setCommentForLine(self, contents, index, comment):
+        return self.process_proxy.submit('SETCOMMENTFORLINE', (contents, index, comment))
+
+    def getLabelIndex(self, name, key=None):
+        return self.process_proxy.submit('GETLABELINDEX', (name, key))
+
+    def renameLabel(self, contents, new_name):
+        return self.process_proxy.submit('RENAMELABEL', (contents, new_name))
+
+    def isInitialized(self):
+        return self.initialized
 
     def shutdown(self, hard=False):
         self.process_proxy.shutdown(hard)

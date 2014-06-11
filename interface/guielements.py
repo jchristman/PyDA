@@ -446,7 +446,7 @@ class Textbox(Text):
     def redrawLine(self, index):
         self.delete(index, index + ' lineend')
         start = self.current_data_offset + int(index.split('.')[0]) - 1
-        line = self.data_model.get(start, start+1, key=self.key).next().rstrip()
+        line = self.data_model.get(start, start+1, key=self.key)[0].rstrip()
         self.context_manager.insert(index + ' lineend', line)
 
     def insertTopLine(self, line):
