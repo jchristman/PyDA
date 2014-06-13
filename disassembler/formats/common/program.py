@@ -192,9 +192,7 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
                     ind, obj = result
                     return (ind + offset, obj)
                 else:
-                    # The above should always return something. Error otherwise
-                    print 'Object was not found in this section for some reason'
-                    raise Exception
+                    return None
                 break
             offset = temp
 
@@ -241,7 +239,6 @@ class CommonProgramDisassemblyFormat(AbstractDataModel):
     def setCommentForLine(self, line_contents, index, comment):
         result = self.search(line_contents, key='exe', index=index)
         if result is None:
-            print "Line wasn't found!"
             return None
         ind, inst = result
         if not isinstance(inst, CommonInstFormat):

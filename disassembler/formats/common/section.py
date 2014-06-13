@@ -161,7 +161,7 @@ class CommonSectionFormat:
         if label_comparator in self.labels.values():
             match = label_comparator.match
             for index, line in enumerate(self.string_rep):
-                if match.name + ':' in line: # all label declarations end in a ":"
+                if match.nameRep() in line:
                     return index
         return None
 

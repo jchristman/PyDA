@@ -1,5 +1,5 @@
 from Tkinter import *
-from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu, Textbox, Location
+from guielements import MenuBar, ToolBar, PanedWindow, ContextMenu, Textbox
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat
 from disassembler.formats.common.inst import CommonInstFormat
@@ -15,11 +15,12 @@ class PyDAInterface(Frame):
         Frame.__init__(self, app)
         self.app = app
         self.disassembly = None
+        self.textboxes = None
         self.main_queue = self.app.createCallbackQueue()
         self.initVars()
         self.initUI()
         self.centerWindow()
-
+        
     def initVars(self):
         self.PYDA_SEP = self.app.settings_manager.get('context', 'pyda-sep')
         self.PYDA_SECTION = self.app.settings_manager.get('context', 'pyda-section')
@@ -130,7 +131,7 @@ class PyDAInterface(Frame):
         debug_frame = self.bottom_notebook.addFrame('Debug')
         debug_frame_2 = debug_frame.addFrame('bottom', 'x', False, borderwidth=1)
         debug_frame_1 = debug_frame.addFrame('top', 'both', True, borderwidth=1)
-        self.debug_textbox = debug_frame_1.addTextboxWithScrollbar(
+        self.debug_textbox = debug_frame_1.addTextboxWithScrollbar('Debug',
                 background='white', borderwidth=1, highlightthickness=1,
                 relief='sunken')
         self.debug_entry = debug_frame_2.addEntryWithLabel(
@@ -144,7 +145,7 @@ class PyDAInterface(Frame):
         chat_frame = self.bottom_notebook.addFrame('Chat')
         chat_frame_2 = chat_frame.addFrame('bottom', 'x', False, borderwidth=1)
         chat_frame_1 = chat_frame.addFrame('top', 'both', True, borderwidth=1)
-        self.chat_textbox = chat_frame_1.addTextboxWithScrollbar(
+        self.chat_textbox = chat_frame_1.addTextboxWithScrollbar('Chat',
                 background='white', borderwidth=1, highlightthickness=1,
                 relief='sunken')
         self.chat_entry = chat_frame_2.addEntryWithLabel(
@@ -171,7 +172,7 @@ class PyDAInterface(Frame):
         dis_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the disassembly textbox
         self.disassembly_textbox_context_manager = AssemblyTextboxContextManager(
-                self.app, self.disassembly, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
+                self.app, self.disassembly, self, dis_textbox_context_queue, self.disassembly_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', self.section_context_menu),
                     (self.PYDA_ADDRESS, 'black', self.address_context_menu),
@@ -184,12 +185,11 @@ class PyDAInterface(Frame):
                     (self.PYDA_ENDL, 'black', self.disass_comment_context_menu)], )
 
         self.disassembly_textbox.setContextManager(self.disassembly_textbox_context_manager)
-        self.disassembly_textbox.bind('<Key>', self.keyHandler)
 
         data_textbox_context_queue = self.app.createCallbackQueue()
         # Create a context manager for the data sections textbox
         self.data_textbox_context_manager = AssemblyTextboxContextManager(
-                self.app, self.disassembly, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP,
+                self.app, self.disassembly, self, data_textbox_context_queue, self.data_sections_textbox, self.PYDA_SEP,
                 self.PYDA_BEGL, right_click_button, [
                     (self.PYDA_SECTION, 'darkgreen', None),
                     (self.PYDA_MNEMONIC, 'blue', None),
@@ -201,7 +201,10 @@ class PyDAInterface(Frame):
                     (self.PYDA_ENDL, 'black', self.data_comment_context_menu)])
 
         self.data_sections_textbox.setContextManager(self.data_textbox_context_manager)
-        self.data_sections_textbox.bind('<Key>', self.keyHandler)
+
+        # The textboxes field keeps pace with the ordering of tabs in the right_notebook. 
+        # This makes it easier to switch tabs at will.
+        self.textboxes = [self.disassembly_textbox, self.data_sections_textbox] 
 
         # Redirect stdout to the debug window
         if self.REDIR_STDOUT:
@@ -219,8 +222,8 @@ class PyDAInterface(Frame):
         widget = event.widget
         selection = widget.curselection()
         name = widget.get(selection[0])
-        # index = self.disassembly.getLabelIndex(name, key="exe")
         index = self.app.disassembler.getLabelIndex(name, key="exe")
+        index = str(index) + '.end'
         self.pushCurrentLocation()
         self.goto(index, self.disassembly_textbox)
 
@@ -230,6 +233,7 @@ class PyDAInterface(Frame):
         name = widget.get(selection[0])
         # index = self.disassembly.getLabelIndex(name, key="data")
         index = self.app.disassembler.getLabelIndex(name, key="data")
+        index = str(index) + '.end'
         self.pushCurrentLocation()
         self.goto(index, self.data_sections_textbox)
 
@@ -311,61 +315,11 @@ class PyDAInterface(Frame):
         if self.DEBUG:
             print str(message) + '\n',
 
-    def getCurrentRowIndex(self, textbox):
-        line, _ = textbox.index('insert').split('.')
-        return line + '.0'
-
-    def getCurrentLine(self, textbox):
-        index = self.getCurrentRowIndex(textbox)
-        contents = textbox.get(index, index + " lineend")
-        return contents.splitlines()[0]
-
     def disassComment(self, event):
         self.comment(self.disassembly_textbox)
 
     def dataComment(self, event):
         self.comment(self.data_sections_textbox)
-
-    def comment(self, event):
-        if not self.app.disassembler.isInitialized():
-            return # Nothing is loaded yet
-
-        textbox = event if isinstance(event, Textbox) else event.widget
-
-        tl = Toplevel(master=self.app)
-        tl.title("Insert Comment")
-
-        frame1 = Frame(tl)
-        frame1.pack(side=TOP)
-        frame2 = Frame(tl)
-        frame2.pack()
-        frame3 = Frame(tl)
-        frame3.pack(side=BOTTOM)
-
-        msg = Label(frame1, text="Please enter a comment:", height=0, width=50)
-        msg.pack()
-
-        e = Entry(frame2)
-        e.pack(side=LEFT)
-
-        def addComment(*args):
-            comment = e.get()
-            contents = self.getCurrentLine(textbox)
-            index = int(float(self.getCurrentRowIndex(textbox))) + textbox.getCurrentDataOffset()
-            result = self.app.disassembler.setCommentForLine(contents, index, comment)
-            if result:
-                tb_index = self.getCurrentRowIndex(textbox)
-                textbox.redrawLine(tb_index)
-
-            tl.destroy()
-
-        button1 = Button(frame2, text="Add Comment", command=addComment)
-        button1.pack(side=RIGHT)
-
-        e.focus()
-        e.bind('<Return>', addComment) # Bind return to submit
-
-        tl.grab_set() # Keeps this toplevel on top
 
     def disassRenameLabel(self, event):
         self.renameLabel(self.disassembly_textbox)
@@ -373,91 +327,19 @@ class PyDAInterface(Frame):
     def dataRenameLabel(self, event):
         self.dataRenameLabel(self.data_sections_textbox)
 
-    def renameLabel(self, event):
-        if not self.app.disassembler.isInitialized():
-            return
-
-        textbox = None
-        if isinstance(event, Textbox):
-            textbox = event
-        else:
-            textbox = event.widget
-
-        tl = Toplevel(master=self.app)
-        tl.title('Rename Label')
-
-        frame1 = Frame(tl)
-        frame1.pack(side=TOP)
-        frame2 = Frame(tl)
-        frame2.pack()
-        frame3 = Frame(tl)
-        frame3.pack(side=BOTTOM)
-
-        msg = Label(frame1, text='Please enter a new name:', height=0, width=50)
-        msg.pack()
-
-        e = Entry(frame2)
-        e.pack(side=LEFT)
-
-        def rename(*args):
-            new_name = e.get()
-            contents = self.getCurrentLine(textbox)
-            result = self.app.disassembler.renameLabel(contents, new_name)
-            if result:
-                textbox.redrawLine(self.getCurrentRowIndex(textbox))
-                self.functions_listbox.delete(0, 'end')
-                self.strings_listbox.delete(0, 'end')
-                self.populateFunctions()
-                self.populateStrings()
-
-            tl.destroy()
-
-        button1 = Button(frame2, text="Rename", command=rename)
-        button1.pack(side=RIGHT)
-
-        e.focus()
-        e.bind('<Return>', rename) # Bind return to submit
-
-        tl.grab_set() # Keeps this toplevel on top
-
-    def controlKeyHeld(self, event):
-        return event.state & 0x004 # see here: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/event-handlers.html
-
-    def keyHandler(self, event):
-        # print event.keysym
-        c = event.char
-        if c == ';':
-            self.comment(event)
-        elif c == 'n' or c == 'N':
-            self.renameLabel(event)
-        elif event.keysym in ['Up', 'Down', 'Left', 'Right', 'Next', 'Prior', 'End', 'Home']:
-            return
-        elif event.keysym == 'Escape':
-            self.popLastLocation()
-        elif self.controlKeyHeld(event):
-            if event.keysym == 'c':
-                self.app.clipboard_clear()
-                self.app.clipboard_append(event.widget.selection_get())
-            elif event.keysym == 'a':
-                textbox = event.widget
-                textbox.tag_add('sel', '1.0', 'end')
-            elif event.keysym == 'o':
-                self.onDisassembleFile()
-            elif event.keysym == 'q':
-                self.onExit()
-            elif event.keysym == 'Tab':
-                return
-
-        # Otherwise, don't let this key go to the screen
-        return 'break'
+    def getKey(self, textbox):
+        if textbox.name == 'Disassembly': return 'exe'
+        elif textbox.name == 'Data Sections': return 'data'
+        else: return None
 
     def pushCurrentLocation(self):
         textbox = self.getSelectedTextbox()
-        current = int(float(self.getCurrentRowIndex(textbox)))
-        if current >= textbox.TCL_BUFFER_SIZE:
-            current = 10
-        index = current + textbox.current_data_offset
-        # print "pushing:",index
+        if textbox is None:
+            textbox = self.disassembly_textbox # default to disassembly
+        cur = textbox.getCursorIndex()
+        cur_row = int(cur.split('.')[0])
+        index = cur_row + textbox.current_data_offset - 1
+        index = str(index) + '.' + cur.split('.')[1]
         self.locationStack.append(Location(index, textbox))
 
     def popLastLocation(self):
@@ -466,30 +348,29 @@ class PyDAInterface(Frame):
         location = self.locationStack.pop()
         index = location.index
         textbox = location.textbox
-        # print "popping:",index
         self.goto(index, textbox)
 
     def goto(self, index, textbox):
-        # TODO: Move this functionality out of the interface into the data structure
-        # print "going to:",index
-        is_disassembly = textbox == self.disassembly_textbox
-        key = "exe" if is_disassembly else "data"
-        fraction = index / float(self.app.disassembler.length(key=key))
-        fraction -= .0001 # enough so that the text isn't cut off
-        textbox.changeView("moveto", fraction)
-        textbox.setCursor(str(index) + ".0")
-        tab_index = 0 if is_disassembly else 1
-        self.selectTab(tab_index)
-
-    def selectTab(self, index):
-        # TODO: make this less hacky if possible - i.e. find a way to keep a list of notebooks
+        self.selectTab(textbox)
+        key = self.getKey(textbox)
+        index_row = int(index.split('.')[0])
+        fraction = index_row / float(self.app.disassembler.length(key=key))
+        fraction -= .00015 # enough that any label text isn't cut off
+        textbox.changeView('moveto', fraction)
+        cursor_index = str(index_row - textbox.current_data_offset + 1) + '.' + index.split('.')[1]
+        textbox.setCursor(cursor_index)
+        
+    def selectTab(self, textbox):
+        index = self.getTabIndex(textbox)
         tab = self.right_notebook.tabs()[index]
         self.right_notebook.select(tab)
 
     def getSelectedTextbox(self):
-        box = self.right_notebook.tabs().index(self.right_notebook.select())
-        # TODO: make this less hacky if possible
-        return self.disassembly_textbox if box == 0 else self.data_sections_textbox
+        index = self.right_notebook.tabs().index(self.right_notebook.select())
+        return self.textboxes[index]
+
+    def getTabIndex(self, textbox):
+        return self.textboxes.index(textbox)
 
 ##    def disassembleFile(self, file_name):
 ##        self.debug('Reading %s' % file_name)
@@ -515,6 +396,14 @@ class PyDAInterface(Frame):
         for string in strings:
             self.app.addCallback(self.main_queue, self.strings_listbox.insert, ('end',string.name))
 
+    def reloadFunctions(self):
+        self.functions_listbox.delete(0, 'end')
+        self.populateFunctions()
+
+    def reloadStrings(self):
+        self.strings_listbox.delete(0, 'end')
+        self.populateStrings()
+
     def processDisassembly(self):
         self.status('Processing Data')
 
@@ -533,6 +422,11 @@ class PyDAInterface(Frame):
     def printStats(self):
         stats = self.app.executor.getProfileStats()
         stats.sort_stats('cumulative').print_stats()
+
+class Location():
+    def __init__(self, index, textbox):
+        self.index = index
+        self.textbox = textbox
 
 if __name__ == '__main__':
     build_and_run()

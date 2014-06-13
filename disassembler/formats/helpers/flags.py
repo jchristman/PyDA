@@ -13,12 +13,12 @@ class Flags:
         self.execute = "x" in flags.lower()
 
     def __str__(self):
-    	properties = []
-    	if self.read:
-    		properties.append("READ")
-    	if self.write:
-    		properties.append("WRITE")
-    	if self.execute:
-    		properties.append("EXECUTE")
+        properties = []
+        if self.read:
+            properties.append("READ")
+        if self.write:
+            properties.append("WRITE")
+        if self.execute:
+            properties.append("EXECUTE")
 
-    	return "/".join(properties)
+        return "/".join(properties)

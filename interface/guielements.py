@@ -5,7 +5,7 @@ This file contains many classes to make the code in the main interface much more
 It also adds many convenience functions to code to make access easier.
 '''
 
-from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END, DISABLED, NORMAL
+from Tkinter import Menu, Button, Label, Text, Listbox, Scrollbar, Entry, PanedWindow as pw, Frame as fm, INSERT, END, DISABLED, NORMAL, Toplevel, TOP, BOTTOM, LEFT, RIGHT
 from ttk import Progressbar, Notebook as nb
 
 START = '1.0'
@@ -235,7 +235,7 @@ class Notebook(nb):
         Description:
         Add a textbox with a label for the notebook
         '''
-        return self.addFrame(text).addTextboxWithScrollbar(**kwargs)
+        return self.addFrame(text).addTextboxWithScrollbar(text, **kwargs)
 
 class Frame(fm):
     def __init__(self, parent, pack_location=None, fill='both', expand=True, **kwargs):
@@ -270,7 +270,7 @@ class Frame(fm):
         '''
         return self.addElement(Frame(self, **kwargs), pack_side, fill, expand)
 
-    def addTextbox(self, pack_side='left', fill='both', expand=True, **kwargs):
+    def addTextbox(self, name, pack_side='left', fill='both', expand=True, **kwargs):
         '''
         Arguments:
         pack_side - side to pack into the frame. Defaults to left.
@@ -281,7 +281,7 @@ class Frame(fm):
         Description:
         Add a Textbox to the Frame
         '''
-        return self.addElement(Textbox(self, **kwargs), pack_side, fill, expand)
+        return self.addElement(Textbox(self, name, **kwargs), pack_side, fill, expand)
 
     def addListbox(self, pack_side='left', fill='both', expand=True, **kwargs):
         '''
@@ -361,7 +361,7 @@ class Frame(fm):
         listbox.configure(yscrollcommand=scroller.set)
         return listbox
     
-    def addTextboxWithScrollbar(self, pack_side='left', fill='both', expand=True, **kwargs):
+    def addTextboxWithScrollbar(self, name, pack_side='left', fill='both', expand=True, **kwargs):
         '''
         Arguments:
         kwargs - for the construction of the textbox
@@ -369,16 +369,17 @@ class Frame(fm):
         Description:
         Add a textbox with scrollbar to the Frame
         '''
-        textbox = self.addTextbox(**kwargs)
+        textbox = self.addTextbox(name, **kwargs)
         scroller = self.addScrollbar(orient='vertical', borderwidth=1, command=textbox.changeView)
         textbox.configure(yscrollcommand=textbox.datayscroll)
         textbox.scroller = scroller
         return textbox
 
 class Textbox(Text):
-    def __init__(self, parent, data_model=None, key=None, context_manager=None, tcl_buffer_size=100, tcl_buffer_low_cutoff=0.25,
+    def __init__(self, parent, name, data_model=None, key=None, context_manager=None, tcl_buffer_size=100, tcl_buffer_low_cutoff=0.25,
                  tcl_buffer_high_cutoff=0.75, tcl_moveto_yview=0.50, max_lines_jump=10, **kwargs):
         Text.__init__(self, parent, **kwargs)
+        self.name = name
         self.scroller = None
         self.context_manager = context_manager
         self.TCL_BUFFER_SIZE = tcl_buffer_size
@@ -389,8 +390,41 @@ class Textbox(Text):
         self.reset()
         self.data_model = data_model
         self.key = key
-        self.setCursor(START)
-        # self.config(state=DISABLED)
+        self.initBindings()
+        self.saved_cursor_index = START
+
+    def initBindings(self):
+        self.bind('<FocusOut>', self.lostFocus)
+        self.bind('<FocusIn>', self.gainedFocus)
+
+    def lostFocus(self, event):
+        self.saved_cursor_index = self.getCursorIndex()
+
+    def gainedFocus(self, event):
+        self.setCursor(self.saved_cursor_index)
+
+    def getCurrentDataOffset(self):
+        return self.current_data_offset
+
+    def getCursorIndex(self):
+        index = self.index(INSERT)
+        row = index.split('.')[0]
+        if int(row) > self.TCL_BUFFER_SIZE:
+            index = self.saved_cursor_index
+        return index
+
+    def getCurrentRowIndex(self):
+        line, _ = self.getCursorIndex().split('.')
+        return line + '.0'
+
+    def setCursor(self, index):
+        self.saved_cursor_index = index
+        result = self.mark_set(INSERT, self.saved_cursor_index)
+
+    def getCurrentLine(self):
+        index = self.getCurrentRowIndex()
+        contents = self.get(index, index + " lineend")
+        return contents.splitlines()[0]
 
     def reset(self):
         self.current_data_offset = 0
@@ -410,7 +444,7 @@ class Textbox(Text):
 
     def setContextManager(self, context_manager):
         self.context_manager = context_manager
-        # self.bind('<Key>', self.context_manager.keyHandler)
+        self.bind('<Key>', self.context_manager.keyHandler)
 
     def appendData(self, data, moveto_end=False):
         self.data_model.append(data, key=self.key)
@@ -528,9 +562,6 @@ class Textbox(Text):
         end = start + display_lines
         return str(start),str(end)
 
-    def setCursor(self, index):
-        self.mark_set("insert", index)
-
     def changeView(self, *args):
         line_height = (1.0 / self.data_model.length(key=self.key))
         display_height = self.cget('height')
@@ -587,9 +618,6 @@ class Textbox(Text):
         else:
             print args
 
-    def getCurrentDataOffset(self):
-        return self.current_data_offset
-
 class ContextMenu(Menu):
     def __init__(self, label_command_pairs):
         Menu.__init__(self, tearoff=0)
@@ -597,7 +625,31 @@ class ContextMenu(Menu):
         for label, callback in label_command_pairs:
             self.add_command(label=label, command=lambda: callback(self.context))
 
-class Location():
-    def __init__(self, index, textbox):
-        self.index = index
-        self.textbox = textbox
+class QuickElementFactory:
+    @staticmethod
+    def createTextInputBox(app, title, prompt, button_text, callback):
+        tl = Toplevel(master=app)
+        tl.title(title)
+
+        frame1 = Frame(tl)
+        frame1.pack(side=TOP)
+        frame2 = Frame(tl)
+        frame2.pack()
+        frame3 = Frame(tl)
+        frame3.pack(side=BOTTOM)
+
+        msg = Label(frame1, text=prompt, height=0, width=50)
+        msg.pack()
+
+        e = Entry(frame2)
+        e.pack(side=LEFT)
+
+        button1 = Button(frame2, text=button_text, command=callback)
+        button1.pack(side=RIGHT)
+
+        e.focus()
+        e.bind('<Return>', callback) # Bind return to submit
+
+        tl.grab_set() # Keeps this toplevel on top
+
+        return e, tl

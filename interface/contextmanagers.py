@@ -1,5 +1,6 @@
 from Tkinter import CURRENT
 from tkFont import Font
+from guielements import QuickElementFactory
 
 class WidgetContextManager:
     def __init__(self, app, processing_queue, widget, click_string):
@@ -20,9 +21,11 @@ class WidgetContextManager:
 
 
 class AssemblyTextboxContextManager(WidgetContextManager):
-    def __init__(self, app, disassembly, processing_queue, widget, separator, begin_line, click_string, tags):
+    def __init__(self, app, disassembly, interface, processing_queue, widget, separator, begin_line, click_string, tags):
         WidgetContextManager.__init__(self, app, processing_queue, widget, click_string)
+        self.app = app
         self.disassembly = disassembly
+        self.interface = interface
         self.separator = separator
         self.begin_line = begin_line
         self.processing_queue = processing_queue
@@ -99,4 +102,80 @@ class AssemblyTextboxContextManager(WidgetContextManager):
                                   indices[0], indices[1]))
             self.current_line += 1
 
-    
+    def controlKeyHeld(self, event):
+        return event.state & 0x004 # see here: http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/event-handlers.html
+
+    def keyHandler(self, event):
+        # print event.keysym
+        c = event.char
+        if c == ';':
+            self.comment(event)
+        elif c == 'n' or c == 'N':
+            self.renameLabel(event)
+        elif event.keysym in ['Up', 'Down', 'Left', 'Right', 'Next', 'Prior', 'End', 'Home']:
+            return
+        elif event.keysym == 'Escape':
+            self.interface.popLastLocation()
+        elif self.controlKeyHeld(event):
+            if event.keysym == 'a':
+                textbox = self.widget
+                textbox.tag_add('sel', '1.0', 'end')
+            elif event.keysym == 'c':
+                self.app.clipboard_clear()
+                self.app.clipboard_append(self.widget.selection_get())
+            elif event.keysym == 'o':
+                self.interface.onDisassembleFile()
+            elif event.keysym == 'q':
+                self.interface.onExit()
+            elif event.keysym == 's':
+                self.interface.onSave()
+            elif event.keysym == 'Tab':
+                return 'break'
+
+        # Otherwise, don't let this key go to the screen
+        return 'break'
+
+    def comment(self, event):
+        if not self.app.disassembler.isInitialized():
+            return # Nothing is loaded yet
+
+        textbox = self.widget
+        e, tl = None, None
+
+        def addComment(*args):
+            if e is None or tl is None:
+                return
+            comment = e.get()
+            contents = textbox.getCurrentLine()
+            index = int(float(textbox.getCurrentRowIndex())) + textbox.getCurrentDataOffset()
+            result = self.app.disassembler.setCommentForLine(contents, index, comment)
+            if result:
+                tb_index = textbox.getCurrentRowIndex()
+                textbox.redrawLine(tb_index)
+
+            tl.destroy()
+
+        e, tl = QuickElementFactory.createTextInputBox(self.app, "Insert Comment", "Please enter a comment:", "Add Comment", addComment)
+
+
+    def renameLabel(self, event):
+        if not self.app.disassembler.isInitialized():
+            return
+
+        textbox = self.widget
+        e, tl = None, None
+
+        def rename(*args):
+            if e is None or tl is None:
+                return
+            new_name = e.get()
+            contents = textbox.getCurrentLine()
+            result = self.app.disassembler.renameLabel(contents, new_name)
+            if result:
+                textbox.redrawLine(textbox.getCurrentRowIndex())
+                self.interface.reloadFunctions()
+                self.interface.reloadStrings()
+
+            tl.destroy()
+
+        e, tl = QuickElementFactory.createTextInputBox(self.app, 'Rename Label', 'Please enter a new name:', "Rename", rename)
