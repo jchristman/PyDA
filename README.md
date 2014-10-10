@@ -1,3 +1,8 @@
+NO LONGER BEING DEVELOPED.
+==========================
+
+We ran into a lot of issues with Python being so horrible at threading. It was impossible to make the UI responsive while it was disassembling, so we have moved on from this. Feel free to take the code and try to make it better...
+
 PyDA
 ====
 
