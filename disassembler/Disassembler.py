@@ -4,6 +4,7 @@ from settings import *
 class Disassembler:
     def __init__(self, settings_manager):
         self.settings_manager = settings_manager
+        self.dis = True # This was not defined in the appropriate scope.  breaks at if statement below when format doesn't match known type.
 
     def load(self, binary, filename = None):
         self.binary = binary
