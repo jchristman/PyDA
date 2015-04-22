@@ -1,3 +1,4 @@
+import capstone
 from capstone import *
 from disassembler.formats.common.program import CommonProgramDisassemblyFormat
 from disassembler.formats.common.section import CommonSectionFormat

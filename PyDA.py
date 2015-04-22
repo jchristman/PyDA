@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from interface import app
 from concurrent.futures import ThreadPoolExecutor
 from disassembler.Disassembler import Disassembler
